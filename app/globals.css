@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: "lay";
-  src: url("/LayGrotesk-Medium.woff");
+  font-family: "carousel-font";
+  src: url("/font.woff");
   font-weight: 400;
   font-style: normal;
 }
 
 body {
-  font-family: "lay";
+  font-family: "carousel-font";
 }
