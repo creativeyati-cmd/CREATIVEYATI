@@ -7,7 +7,7 @@ Built with Next.js (App Router), but the carousel core is plain JavaScript with 
 ## Features
 
 - **Infinite row** — panels wrap seamlessly in both directions; each panel keeps its image's natural aspect ratio (no crop, no stretch).
-- **Premium scroll** — free scrolling with a weighty lerp glide; when the glide is about to settle, it lands softly on the nearest panel center (settle snap) in one continuous motion.
+- **Premium scroll** — weighty lerp glide from the wheel, or grab and pull the row directly (with flick momentum, and touch tuned separately from the mouse). When input stops, it lands softly on the nearest panel center in one continuous motion.
 - **Liquid-glass lens** — the row renders into a framebuffer and is drawn through a refraction shader: inward pull, chromatic dispersion, white nova core, blue shimmer ring, fluid rim wave.
 - **Focus mode** — click any panel: the carousel centers it, every other panel drops away in a center-out stagger, the lens distortion melts out and the image enlarges.
 - **Entry animation** — panels rise from below at a small size, then bloom to full size while the lens fades in.
@@ -50,12 +50,13 @@ Everything lives in `lib/carousel/config.js`, documented inline. The most impact
 | Setting | What it does |
 | --- | --- |
 | `CONFIG.EASE` | Scroll glide weight — lower = heavier, more drift |
-| `CONFIG.SNAP_DIST` | How early the settle-snap commits to a panel |
+| `CONFIG.SNAP_IDLE_MS` | How long input must be idle before it settles on a panel |
 | `CONFIG.PANEL_H` | Panel height (widths follow image aspect) |
+| `INTERACT.drag` / `noClick` | Drag-to-scroll on/off; drag-only browsing mode |
 | `LENS.*` | Everything about the glass lens |
 | `ENTRY.*` / `FOCUS.*` | Entry & focus choreography (durations, eases, staggers) |
 
-For live tweaking there is a lil-gui dev panel, created hidden — edit `lib/carousel/gui.js` and remove the `gui.hide()` line while designing, then copy the numbers you land on back into `config.js`.
+For live tweaking, **press `g`** to open the lil-gui dev panel (hidden by default). Copy the numbers you land on back into `config.js`.
 
 ### Use the engine without React
 

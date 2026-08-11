@@ -12,19 +12,22 @@ WebGL portfolio carousel: three.js + GSAP core with a thin React/Next.js wrapper
 
 | File | Owns |
 | --- | --- |
-| `lib/carousel/config.js` | `PROJECTS` image list + all tunables (`CONFIG`, `LENS`, `FOCUS`, `ENTRY`, `UI_ANIM`). Data only, no logic. |
+| `lib/carousel/config.js` | `PROJECTS` image list + all tunables (`CONFIG`, `INTERACT`, `LENS`, `FOCUS`, `ENTRY`, `UI_ANIM`). Data only, no logic. |
 | `lib/carousel/engine.js` | Everything on the canvas: renderer, infinite row, scroll, lens shader (inline GLSL), focus mode, entry animation, render loop. Framework-free — no React imports, ever. |
 | `lib/carousel/gui.js` | lil-gui dev panel (hidden by default). Mutates the config objects live. |
 | `Components/CarouselSection.jsx` | React overlay only: heading, counter, "View" cursor label, Close button, viewport gate (<1025px shows a black screen and never boots WebGL). |
 | `app/page.js` | Just renders `<CarouselSection />`. |
 
-Routing common requests: add/change images → `config.js` `PROJECTS`. Scroll feel / snap / panel size → `config.js` `CONFIG`. Lens look → `config.js` `LENS` (uniforms mirror it 1:1). Entry/focus choreography → `ENTRY` / `FOCUS`. Overlay text or breakpoint → `CarouselSection.jsx`. Motion/render behavior → `engine.js`.
+Routing common requests: add/change images → `config.js` `PROJECTS`. Scroll feel / snap / panel size → `config.js` `CONFIG`. Drag + click-vs-drag thresholds → `config.js` `INTERACT`. Lens look → `config.js` `LENS` (uniforms mirror it 1:1). Entry/focus choreography → `ENTRY` / `FOCUS`. Overlay text or breakpoint → `CarouselSection.jsx`. Motion/render behavior → `engine.js`.
 
 ## Architecture invariants — do not break these
 
-- **The engine talks to React only via callbacks** (`onActiveChange`, `onFocusChange`, `onEntryDone`) and the returned handle (`closeFocus`, `replayEntry`, `refreshLayout`, `destroy`). Don't import React into the engine or reach into engine internals from the component.
+- **The engine talks to React only via callbacks** (`onActiveChange`, `onFocusChange`, `onEntryDone`, `onModeChange`) and the returned handle (`closeFocus`, `replayEntry`, `refreshLayout`, `setInteraction`, `destroy`). Don't import React into the engine or reach into engine internals from the component.
 - **GSAP animates plain numbers, never meshes.** Timelines tween values in `drop[]`, `pEntry[]`, `growArr[]`, `focusScale`, `focusState.lensFx`; `layout()` reads them each frame and derives final mesh transforms. Keep new animations in this pattern or motion will fight itself.
-- **One easing system.** Scroll motion is a single lerp (`scroll += (target - scroll) * EASE`). The settle-snap redirects `target` only — it must never move `scroll` directly or introduce a second tween on it. (History: layered easing/snap systems here caused jumpy scrolling and were rebuilt twice.)
+- **One easing system.** Scroll motion is a single lerp (`scroll += (target - scroll) * ease`), where `ease` picks between `EASE` / `SNAP_EASE` / `TOUCH_EASE` per frame. Wheel, drag, momentum and the settle-snap all move `target` only — nothing may move `scroll` directly or add a second tween on it. (History: layered easing/snap systems here caused jumpy scrolling and were rebuilt twice.)
+- **The settle-snap triggers on idle time** (`SNAP_IDLE_MS` since the last input), not on remaining distance or velocity. Distance/velocity gating fired at different moments for fast flicks vs slow scrolls and felt inconsistent — don't reintroduce it.
+- **Cursor state has one owner.** All cursor writes go through `updateCursor()` (deduped, runs every frame via `refreshHover`). It reads `hoverPanel` (raw geometry); the trailing label reads `overPanel`, which adds its own gates. Never set `el.style.cursor` directly.
+- **A drag must not open focus.** `onPointerUp` sets `suppressClick` past `CLICK_SLOP` (`TOUCH_CLICK_SLOP` for touch) and `onClick` consumes it. Keep that handshake intact when touching either handler.
 - **The FBO is sized in device pixels** (`W * dpr`), including in `onResize`. Sizing it in CSS pixels makes everything blurry on retina.
 - **Textures need mipmaps + anisotropy** (set in the load callback). Panels render ~80px tall during entry; plain linear filtering looks mushy.
 - **1 world unit = 1 px** (orthographic camera). All layout math assumes this.

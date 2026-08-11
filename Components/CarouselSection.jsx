@@ -24,6 +24,7 @@ const CarouselSection = () => {
   const [active, setActive] = useState(0); // index of the centered image
   const [focused, setFocused] = useState(false); // a focus session is open
   const [entryDone, setEntryDone] = useState(false); // entry fully settled
+  const [noClick, setNoClick] = useState(false); // drag-only mode (GUI toggle)
   // "pending" until we know the viewport (SSR-safe), then "ok" | "small"
   const [screen, setScreen] = useState("pending");
 
@@ -44,6 +45,7 @@ const CarouselSection = () => {
       onActiveChange: setActive,
       onFocusChange: setFocused,
       onEntryDone: setEntryDone,
+      onModeChange: (mode) => setNoClick(mode.noClick), // swaps the label text
     });
     engineRef.current = engine;
     const gui = createCarouselGui(engine); // dev panel (hidden by default)
@@ -129,7 +131,7 @@ const CarouselSection = () => {
     <div ref={mountRef} className="h-screen relative w-screen bg-white">
       <div
         ref={topTextRef}
-        className="absolute px-4 left-1/2 top-[15%] mix-blend-exclusion text-white"
+        className="absolute px-4 left-1/2 top-[15%] mix-blend-exclusion text-white pointer-events-none"
         style={ENTRY.enabled ? { opacity: 0, visibility: "hidden" } : undefined}
       >
         <div className="flex flex-col items-center justify-center">
@@ -140,7 +142,7 @@ const CarouselSection = () => {
 
       <div
         ref={counterRef}
-        className="absolute px-4 left-1/2 bottom-[15%] text-black"
+        className="absolute px-4 left-1/2 bottom-[15%] text-black pointer-events-none"
         style={ENTRY.enabled ? { opacity: 0, visibility: "hidden" } : undefined}
       >
         <p className="text-center text-base">
@@ -152,9 +154,9 @@ const CarouselSection = () => {
       <div
         ref={cursorRef}
         className="fixed top-4 left-4 z-50 pointer-events-none text-white text-sm whitespace-nowrap mix-blend-exclusion"
-        style={{ willChange: "transform" }}
+        style={{ willChange: "transform", opacity: 0, visibility: "hidden" }}
       >
-        View
+        {noClick ? "Drag" : "View"}
       </div>
 
       <button
