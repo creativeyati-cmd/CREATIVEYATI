@@ -1,0 +1,1 @@
+export default function ResetPassword() { return <main className="login"><form><h1>Reset password</h1><p>Password reset is handled through Supabase Auth. Configure the reset email template and redirect URL in your Supabase project.</p><a className="button" href="/admin/login">Back to sign in</a></form></main>; }

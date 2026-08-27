@@ -1,0 +1,1 @@
+export default function EmailSettings() { return <><div className="admin-title"><p>SETTINGS</p><h1>Email delivery</h1></div><p className="empty-state">SMTP credentials are intentionally not editable until <code>SMTP_ENCRYPTION_KEY</code> is configured. The server-only email module must encrypt a replacement password before storing it and never return it to the browser.</p></>; }

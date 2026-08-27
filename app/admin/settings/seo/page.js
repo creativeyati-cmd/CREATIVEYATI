@@ -1,0 +1,1 @@
+export default function SeoSettings() { return <><div className="admin-title"><p>SETTINGS</p><h1>SEO defaults</h1></div><p className="empty-state">Configure site title, description, canonical site URL and default social image in <code>site_settings</code>.</p></>; }

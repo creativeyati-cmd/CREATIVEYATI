@@ -1,0 +1,1 @@
+export default function ContactSettings() { return <><div className="admin-title"><p>SETTINGS</p><h1>Contact details</h1></div><p className="empty-state">Store public email, phone, WhatsApp, availability, location and social links in <code>site_settings</code>. Values are only displayed when configured.</p></>; }
