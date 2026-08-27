@@ -1,5 +1,5 @@
 import Link from "next/link";
-import ThemeToggle from "@/Components/ThemeToggle";
+import PublicHeader from "@/Components/PublicHeader";
 import { getSiteContent } from "@/lib/data/site";
 
 export const metadata = { title: "About | Frame / Motion", description: "About the director and visual storyteller behind Frame / Motion." };
@@ -7,7 +7,7 @@ export const metadata = { title: "About | Frame / Motion", description: "About t
 export default async function AboutPage() {
   const site = await getSiteContent();
   return <main className="about-page">
-    <header className="site-header"><Link href="/" className="identity">{site.profileImage ? <img className="profile-image" src={site.profileImage} alt="" /> : <span className="identity-mark">FM</span>}<span>{site.creatorName}</span></Link><nav><Link href="/work">Work</Link><Link href="/contact">Contact</Link><ThemeToggle /></nav></header>
+    <PublicHeader site={site} current="/about" />
     <article className="about-note">
       <div className="about-identity">{site.profileImage ? <img className="about-avatar" src={site.profileImage} alt="" /> : <span className="about-avatar identity-mark">FM</span>}<div><h1>{site.creatorName}</h1><p>{site.professionalTitle}</p>{site.availability && <small>{site.availability}</small>}</div></div>
       <div className="about-copy"><p>{site.aboutCurrentWork}</p><p>{site.aboutApproach}</p><p>{site.aboutExperience}</p><p>{site.aboutPhilosophy}</p></div>

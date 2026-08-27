@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createCarousel } from "@/lib/carousel/engine";
 import { createCarouselGui } from "@/lib/carousel/gui";
 import YouTubePlayer from "./YouTubePlayer";
@@ -8,6 +9,7 @@ import YouTubePlayer from "./YouTubePlayer";
 const MIN_WEBGL_WIDTH = 1025;
 
 export default function CarouselSection({ projects }) {
+  const router = useRouter();
   const mountRef = useRef(null); const cursorRef = useRef(null); const engineRef = useRef(null);
   const [active, setActive] = useState(0); const [focused, setFocused] = useState(false); const [screen, setScreen] = useState("pending");
   const project = projects[active];
@@ -16,7 +18,7 @@ export default function CarouselSection({ projects }) {
   }, []);
   useEffect(() => {
     if (screen !== "webgl" || !mountRef.current || !projects.length) return;
-    const engine = createCarousel(mountRef.current, { projects, cursorElement: cursorRef.current, onActiveChange: setActive, onFocusChange: setFocused });
+    const engine = createCarousel(mountRef.current, { projects, cursorElement: cursorRef.current, onActiveChange: setActive, onFocusChange: setFocused, onProjectOpen: (index) => router.push(`/work/${projects[index].slug}`) });
     engineRef.current = engine;
     const gui = process.env.NODE_ENV === "development" ? createCarouselGui(engine) : null;
     return () => { gui?.destroy(); engine.destroy(); engineRef.current = null; };
