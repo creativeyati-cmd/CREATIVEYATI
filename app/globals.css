@@ -16,6 +16,58 @@ html[data-theme="dark"] { --background:#121212; --foreground:#f2f0eb; --surface:
 .theme-toggle { display:inline-flex; align-items:center; gap:6px; }.admin-shell aside a,.admin-shell aside button { display:flex; align-items:center; gap:8px; }
 .public-menu a,.header-cta,.play-label { display:inline-flex; align-items:center; gap:8px; }.play-label svg { width:13px; height:13px; }.header-cta svg { width:14px; height:14px; }.public-menu a svg,.admin-shell aside a svg,.admin-shell aside button svg { flex:0 0 auto; }
 
+/* Mobile navigation: an unboxed, vertical liquid-refraction menu. */
+@media (max-width:620px) {
+  .public-menu {
+    position:fixed;
+    z-index:60;
+    top:76px;
+    left:5vw;
+    width:min(13rem, calc(100vw - 10vw));
+    min-width:0;
+    grid-template-columns:1fr;
+    gap:5px;
+    padding:4px 0;
+    background:transparent;
+    border:0;
+    box-shadow:none;
+    -webkit-backdrop-filter:blur(15px) saturate(1.45);
+    backdrop-filter:blur(15px) saturate(1.45);
+  }
+  .public-menu a {
+    position:relative;
+    display:flex!important;
+    overflow:hidden;
+    padding:12px 14px;
+    color:var(--foreground)!important;
+    font-size:.88rem;
+    line-height:1;
+    background:transparent!important;
+    border:0;
+    border-radius:999px;
+    isolation:isolate;
+    transition:color var(--duration-fast) var(--ease-smooth-out),transform var(--duration-fast) var(--ease-smooth-out),filter var(--duration-fast) var(--ease-smooth-out);
+  }
+  .public-menu a::before {
+    position:absolute;
+    z-index:-1;
+    inset:2px 0;
+    content:"";
+    opacity:0;
+    filter:blur(9px);
+    background:linear-gradient(105deg,transparent 10%,color-mix(in srgb,var(--site-accent,#9BC300) 48%,transparent) 48%,rgba(91,185,255,.32) 59%,transparent 90%);
+    transform:translateX(-48%) skewX(-14deg);
+    transition:opacity var(--duration-fast) var(--ease-smooth-out),transform var(--duration-fast) var(--ease-smooth-out);
+  }
+  .public-menu a:hover,.public-menu a:focus-visible,.public-menu a.is-active {
+    color:var(--foreground)!important;
+    filter:drop-shadow(0 7px 12px color-mix(in srgb,var(--site-accent,#9BC300) 20%,transparent));
+    transform:translateX(4px);
+  }
+  .public-menu a:hover::before,.public-menu a:focus-visible::before,.public-menu a.is-active::before { opacity:.9; transform:translateX(26%) skewX(-14deg); }
+  .public-menu a.is-active { color:var(--site-accent,#9BC300)!important; }
+}
+
 /* primary action colour */
 :root { --accent:#9BC300; --accent-foreground:#101400; --accent-hover:#b5df18; --accent-pressed:#7d9c00; }
 .button,.header-cta { transition:background-color var(--duration-fast) var(--ease-smooth-out),color var(--duration-fast) var(--ease-smooth-out),transform var(--duration-fast) var(--ease-smooth-out),box-shadow var(--duration-fast) var(--ease-smooth-out); }

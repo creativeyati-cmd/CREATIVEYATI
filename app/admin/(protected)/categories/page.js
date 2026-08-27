@@ -1,3 +1,3 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { saveCategory } from "../actions";
+import { saveCategory } from "@/app/admin/actions";
 export default async function Categories() { const supabase = await createSupabaseServerClient(); const { data: categories = [] } = await supabase.from("categories").select("*").order("display_order"); return <><div className="admin-title"><p>CATEGORIES</p><h1>Organise the work.</h1></div><form className="admin-form compact" action={saveCategory}><label>Name<input required name="name" /></label><label>Slug<input required name="slug" placeholder="music-video" /></label><label className="form-wide">Description<textarea name="description" rows="2" /></label><button className="button">Add category</button></form><div className="admin-list">{categories.map((item) => <div key={item.id}><span>{item.name}</span><small>/{item.slug} · {item.is_visible ? "visible" : "hidden"}</small></div>)}</div></>; }
