@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createCarousel } from "@/lib/carousel/engine";
 import { createCarouselGui } from "@/lib/carousel/gui";
 import YouTubePlayer from "./YouTubePlayer";
+import { AdminIcon } from "./Icons";
 
 const MIN_WEBGL_WIDTH = 1025;
 
@@ -27,7 +28,7 @@ export default function CarouselSection({ projects }) {
   if (screen !== "webgl") return null;
   return <section ref={mountRef} className="carousel-shell" aria-label="Selected video work">
     <div className="carousel-meta"><span>{project?.category?.name || project?.clientName || "Selected work"}</span><h2>{project?.title}</h2><p>{project?.year || ""} · {project?.orientation === "portrait" ? "9:16" : "16:9"}</p></div>
-    <p className="carousel-count">{String(active + 1).padStart(2, "0")} / {String(projects.length).padStart(2, "0")}</p><p className="carousel-hint">Scroll to navigate</p><span className="play-label">Play film</span>
+    <p className="carousel-count">{String(active + 1).padStart(2, "0")} / {String(projects.length).padStart(2, "0")}</p><p className="carousel-hint">Scroll to navigate</p><span className="play-label"><AdminIcon name="play" />Play film</span>
     <span ref={cursorRef} className="carousel-cursor" aria-hidden="true">View</span>
     {focused && project && <div className="focus-project"><div><span>{project.category?.name || "Selected work"} · {project.year || ""}</span><h2>{project.title}</h2><p>{project.description || project.shortDescription}</p></div><YouTubePlayer video={project} onClose={() => engineRef.current?.closeFocus()} /></div>}
   </section>;
