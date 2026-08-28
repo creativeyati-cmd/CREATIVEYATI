@@ -325,3 +325,51 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
   .public-page .mobile-card-caption small { color:var(--muted); font-size:.68rem; }
   .public-page .mobile-card-caption strong { margin-top:5px; font-weight:400; }
 }
+
+.player-actions {
+  position:absolute;
+  top:-44px;
+  right:0;
+  z-index:3;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.player-actions .player-sound,
+.player-actions .player-close {
+  position:static;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:36px;
+  padding:0 12px;
+  border:0;
+  border-radius:999px;
+  background:var(--foreground);
+  color:var(--background);
+  font:inherit;
+  font-size:.72rem;
+  cursor:pointer;
+  transition:transform var(--duration-fast) var(--ease-smooth-out),color var(--duration-fast) var(--ease-smooth-out);
+}
+
+.player-actions .player-sound:hover,
+.player-actions .player-sound:focus-visible,
+.player-actions .player-close:hover,
+.player-actions .player-close:focus-visible {
+  color:var(--accent);
+  transform:translateY(-2px);
+}
+
+.player-actions .player-sound:focus-visible,
+.player-actions .player-close:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:3px;
+}
+
+@media (max-width:620px) {
+  .player-actions { top:-42px; gap:8px; }
+  .player-actions .player-sound,
+  .player-actions .player-close { min-height:34px; padding:0 10px; }
+}
