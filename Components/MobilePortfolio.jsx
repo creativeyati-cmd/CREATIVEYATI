@@ -249,7 +249,7 @@ export default function MobilePortfolio({ videos, showMetadata = true }) {
       </div>
       <div ref={lensStageRef} className="mobile-liquid-stage" aria-hidden="true"><span className="mobile-liquid-fallback" /></div>
     </div>
-    <button ref={playRef} className="mobile-play" type="button" onClick={() => { if (entryCompleteRef.current) setFocused(true); }}><AdminIcon name="play" /> Play film</button>
+    <button ref={playRef} className="mobile-play" type="button" onClick={() => { if (entryCompleteRef.current) setFocused(true); }}><AdminIcon name="play" /> Play</button>
     <div ref={indicatorsRef} className="mobile-carousel-indicators"><span>{videos.length > 1 ? "Swipe to navigate" : ""}</span><span>{twoDigits(active + 1)}/{twoDigits(videos.length)}</span></div>
     {focused && <div className="mobile-player" role="dialog" aria-modal="true" aria-label={`${video.title} player`}><div className="mobile-player-content"><ProjectMedia project={video} context="focus-player" autoPlay onClose={() => setFocused(false)} /><Link className="button focus-view-more" href={`/work/${video.slug}`}>View More</Link></div></div>}
   </section>;

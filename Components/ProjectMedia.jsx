@@ -77,7 +77,7 @@ export default function ProjectMedia({
         />
       </picture>
       {!loaded && <span className="project-media-loading" aria-hidden="true" />}
-      {allowPlayback && <button className="project-media-play" type="button" onClick={() => setPlaying(true)}><AdminIcon name="play" /> Play film</button>}
+      {allowPlayback && <button className="project-media-play" type="button" onClick={() => setPlaying(true)}><AdminIcon name="play" /> Play</button>}
     </>}
   </div>;
 }
