@@ -292,6 +292,18 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
   .hero-statement h1 { font-size:clamp(1.85rem,8.2vw,2.35rem); }
 }
 
+@media (max-width:620px) {
+  .portfolio-home .site-header { min-height:64px; padding:10px 14px; gap:8px; }
+  .portfolio-home .identity-wrap { flex:1 1 auto; min-width:0; }
+  .portfolio-home .identity { min-width:0; max-width:none; }
+  .portfolio-home .identity>span:last-child { max-width:112px; }
+  .portfolio-home .header-actions { flex:0 0 auto; }
+  .portfolio-home .filter-bar { padding-top:7px; padding-bottom:11px; }
+  .mobile-project-meta { min-height:68px; padding-bottom:12px; }
+  .mobile-carousel-track.active-portrait { height:min(146vw,66svh); }
+  .mobile-project.portrait { flex-basis:min(84vw,calc(66svh * .5625)); }
+}
+
 @media (prefers-reduced-motion:reduce) {
   .mobile-carousel-track { scroll-behavior:auto; transition:none; }
   .mobile-project::after { transition:none; }
