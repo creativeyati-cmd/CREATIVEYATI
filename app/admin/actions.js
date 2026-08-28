@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient, getAdminUser } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient, getAdminUser } from "@/lib/supabase/server";
 import { contactSettingsSchema, emailSettingsSchema, seoSettingsSchema, videoSchema } from "@/lib/validation";
 import { embedUrl, getYouTubeId, thumbnailUrl } from "@/lib/youtube";
 import { getSiteContent } from "@/lib/data/site";
@@ -13,8 +13,65 @@ import { sendSettingsTestEmail } from "@/lib/email/delivery";
 async function admin() { const user = await getAdminUser(); if (!user) throw new Error("Unauthorised"); return user; }
 export async function login(formData) { const email = String(formData.get("email") || ""); const password = String(formData.get("password") || ""); if (hasDirectAdminAuth()) { if (!verifyDirectAdminCredentials(email, password)) redirect("/admin/login?error=Invalid+email+or+password"); await createDirectAdminSession(email); redirect("/admin"); } const supabase = await createSupabaseServerClient(); if (!supabase) return redirect("/admin/login?error=Admin+sign-in+is+not+configured"); const { error } = await supabase.auth.signInWithPassword({ email, password }); if (error) redirect("/admin/login?error=Invalid+email+or+password"); redirect("/admin"); }
 export async function logout() { await clearDirectAdminSession(); const supabase = await createSupabaseServerClient(); await supabase?.auth.signOut(); redirect("/admin/login"); }
-export async function saveVideo(formData) { await admin(); const raw = Object.fromEntries(formData); const parsed = videoSchema.safeParse({ ...raw, categoryId: raw.categoryId || null, year: raw.year || null }); if (!parsed.success) throw new Error(parsed.error.issues[0].message); const data = parsed.data; const id = getYouTubeId(data.youtubeUrl); const record = { title:data.title, slug:data.slug, short_description:data.shortDescription, description:data.description, youtube_url:data.youtubeUrl, youtube_video_id:id, youtube_embed_url:embedUrl(id), youtube_thumbnail_url:thumbnailUrl(id), custom_poster_url:data.posterUrl || null, orientation:data.orientation, aspect_ratio:data.orientation === "portrait" ? 9/16 : 16/9, category_id:data.categoryId || null, status:data.status, year:data.year || null, published_at:data.status === "published" ? new Date().toISOString() : null };
- const supabase = await createSupabaseServerClient(); const videoId = String(formData.get("id") || ""); const result = videoId ? await supabase.from("videos").update(record).eq("id", videoId) : await supabase.from("videos").insert(record); if (result.error) throw new Error("Video could not be saved."); revalidatePath("/"); redirect("/admin/videos"); }
+function jsonObject(value) { try { const parsed = JSON.parse(value || "{}"); return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } }
+function storageKeys(value) { try { const parsed = JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed.filter((key) => typeof key === "string" && /^[A-Za-z0-9/_-]+\.webp$/.test(key) && !key.includes("..")) : []; } catch { return []; } }
+
+export async function saveVideo(formData) {
+  await admin();
+  const raw = Object.fromEntries(formData);
+  const parsed = videoSchema.safeParse({ ...raw, categoryId: raw.categoryId || null, year: raw.year || null });
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+  const data = parsed.data;
+  const id = getYouTubeId(data.youtubeUrl);
+  const aspectRatio = data.orientation === "portrait" ? 9 / 16 : 16 / 9;
+  const record = {
+    title: data.title,
+    slug: data.slug,
+    short_description: data.shortDescription,
+    description: data.description,
+    youtube_url: data.youtubeUrl,
+    youtube_video_id: id,
+    youtube_embed_url: embedUrl(id),
+    youtube_thumbnail_url: thumbnailUrl(id),
+    orientation: data.orientation,
+    aspect_ratio: aspectRatio,
+    cover_image_url: data.coverImageUrl || null,
+    cover_image_storage_key: data.coverImageStorageKey || null,
+    mobile_cover_image_url: data.mobileCoverImageUrl || null,
+    mobile_cover_storage_key: data.mobileCoverStorageKey || null,
+    cover_fit: data.coverFit,
+    cover_focal_x: data.coverFocalX,
+    cover_focal_y: data.coverFocalY,
+    cover_alt: data.coverAlt || `${data.title} cover`,
+    cover_variants: jsonObject(data.coverVariants),
+    mobile_cover_variants: jsonObject(data.mobileCoverVariants),
+    // Keep legacy fields populated while existing deployments migrate.
+    custom_poster_url: data.coverImageUrl || null,
+    mobile_poster_url: data.mobileCoverImageUrl || null,
+    display_mode: data.coverFit,
+    focal_x: data.coverFocalX / 100,
+    focal_y: data.coverFocalY / 100,
+    category_id: data.categoryId || null,
+    status: data.status,
+    year: data.year || null,
+    published_at: data.status === "published" ? new Date().toISOString() : null,
+  };
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) throw new Error("Database access is not configured.");
+  const videoId = String(formData.get("id") || "");
+  const result = videoId ? await supabase.from("videos").update(record).eq("id", videoId) : await supabase.from("videos").insert(record);
+  if (result.error) throw new Error("Video could not be saved. Confirm the project-cover migration has been applied.");
+
+  const cleanup = storageKeys(data.cleanupStorageKeys);
+  if (cleanup.length) {
+    const service = createSupabaseServiceClient();
+    await service?.storage.from("project-covers").remove(cleanup);
+  }
+  revalidatePath("/");
+  revalidatePath("/work");
+  revalidatePath(`/work/${data.slug}`);
+  redirect("/admin/videos");
+}
 export async function saveCategory(formData) { await admin(); const name = String(formData.get("name") || "").trim(); const slug = String(formData.get("slug") || "").trim(); if (!name || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error("Use a category name and lowercase slug."); const supabase = await createSupabaseServerClient(); const { error } = await supabase.from("categories").insert({ name, slug, description:String(formData.get("description") || "") }); if (error) throw new Error("Category could not be saved."); revalidatePath("/"); revalidatePath("/admin/categories"); }
 export async function updateEnquiry(formData) { await admin(); const supabase = await createSupabaseServerClient(); await supabase.from("enquiries").update({ status:String(formData.get("status")), internal_notes:String(formData.get("notes") || "") }).eq("id", String(formData.get("id"))); revalidatePath("/admin/enquiries"); }
 export async function saveSiteContent(formData) { await admin(); const value = { ...(await getSiteContent()) }; for (const key of Object.keys(value)) if (formData.has(key)) value[key] = String(formData.get(key) ?? "").trim(); const supabase = await createSupabaseServerClient(); const { error } = await supabase.from("site_content").upsert({ key: "site", value, updated_at: new Date().toISOString() }); if (error) throw new Error("Website content could not be saved."); ["/", "/about", "/contact", "/work"].forEach(revalidatePath); redirect("/admin/content/hero?saved=1"); }
