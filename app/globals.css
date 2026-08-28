@@ -299,13 +299,13 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
 @media (min-width:1025px) {
   .portfolio-home .site-header { min-height:68px; padding-block:14px; }
   .portfolio-home .filter-bar { min-height:34px; padding:0 4vw 6px; }
-  .carousel-shell { width:100vw; height:clamp(560px,74svh,820px); min-height:0; margin:clamp(24px,4svh,48px) 0 0; overflow:hidden; }
+  .carousel-shell { width:100vw; height:clamp(560px,64svh,780px); min-height:0; margin:clamp(24px,4svh,48px) 0 0; overflow:hidden; }
   .carousel-meta { top:clamp(22px,4.2svh,46px); }
   .carousel-meta h2 { max-width:620px; margin:6px auto; font-size:clamp(.95rem,1.2vw,1.15rem); }
-  .carousel-hint,.carousel-count { bottom:clamp(22px,4svh,44px); margin:0; font-size:.7rem; letter-spacing:.02em; }
+  .carousel-hint,.carousel-count { bottom:clamp(14px,2svh,24px); margin:0; font-size:.7rem; letter-spacing:.02em; }
   .carousel-hint { left:clamp(48px,5vw,72px); }
   .carousel-count { right:clamp(48px,5vw,72px); }
-  .play-label { bottom:clamp(76px,10svh,112px); }
+  .carousel-shell .play-label { top:calc(50% + var(--carousel-frame-height,315px) / 2 + 12px); bottom:auto; }
   .portfolio-home .hero-statement { padding:clamp(11px,1.4svh,18px) 5vw clamp(70px,9svh,110px); }
 }
 
@@ -326,7 +326,7 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
   .carousel-hint,.carousel-count { bottom:14px; margin:0; font-size:.66rem; }
   .carousel-hint { left:20px; }
   .carousel-count { right:20px; }
-  .play-label { bottom:42px; }
+  .carousel-shell .play-label { top:calc(50% + var(--carousel-frame-height,166px) / 2 + 12px); bottom:auto; }
   .carousel-cursor { display:none; }
   .focus-project { position:fixed; z-index:80; grid-template-columns:1fr; align-content:center; padding:max(72px,env(safe-area-inset-top)) 5vw max(34px,env(safe-area-inset-bottom)); overflow-y:auto; }
   .focus-project-copy { order:2; text-align:center; }
@@ -601,11 +601,11 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
   transition:opacity .28s var(--ease-smooth-out),transform .28s var(--ease-smooth-out);
 }
 .carousel-shell.is-entering .carousel-count,
-.carousel-shell.is-entering .carousel-hint,
-.carousel-shell.is-entering .play-label { opacity:0; transform:translateY(10px); }
+.carousel-shell.is-entering .carousel-hint { opacity:0; transform:translateY(10px); }
+.carousel-shell.is-entering .play-label { opacity:0; transform:translateX(-50%) translateY(10px); }
 .carousel-shell.entry-done .carousel-count,
-.carousel-shell.entry-done .carousel-hint,
-.carousel-shell.entry-done .play-label { opacity:1; transform:translateY(0); }
+.carousel-shell.entry-done .carousel-hint { opacity:1; transform:translateY(0); }
+.carousel-shell.entry-done .play-label { opacity:1; transform:translateX(-50%) translateY(0); }
 
 /* One mobile WebGL lens overlays the active native-swipe poster. */
 .mobile-carousel-visual { position:relative; width:100%; }
