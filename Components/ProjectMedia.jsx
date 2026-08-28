@@ -31,6 +31,7 @@ export default function ProjectMedia({
   const mainSrcSet = variantSrcSet(preferMobile && hasMobileCover ? covers.mobileVariants : covers.mainVariants);
   const mobileSrcSet = variantSrcSet(covers.mobileVariants);
   const source = overrideSource || (preferMobile && covers.mobileUrl) || covers.mainUrl || covers.youtubeUrl || covers.fallbackUrl;
+  const youtubePortraitFallback = orientation === "portrait" && !covers.mainUrl && !(preferMobile && covers.mobileUrl) && source === covers.youtubeUrl;
   const attemptedFallbacks = useRef(new Set());
 
   function useNextFallback(event) {
@@ -48,9 +49,10 @@ export default function ProjectMedia({
     className={`project-media project-media--${context} ${className}`.trim()}
     data-orientation={orientation}
     data-playing={playing ? "true" : "false"}
-    style={{ "--cover-fit": covers.fit, "--focal-x": `${covers.focalX}%`, "--focal-y": `${covers.focalY}%` }}
+    style={{ "--cover-fit": youtubePortraitFallback ? "contain" : covers.fit, "--focal-x": `${covers.focalX}%`, "--focal-y": `${covers.focalY}%` }}
   >
     {playing ? <YouTubePlayer video={project} onClose={onClose} /> : <>
+      {youtubePortraitFallback && <span className="project-media-backdrop" style={{ backgroundImage: `url("${covers.youtubeUrl.replaceAll('"', "%22")}")` }} aria-hidden="true" />}
       <picture>
         {!preferMobile && !overrideSource && (covers.mobileUrl || mobileSrcSet) && <source media="(max-width: 720px)" srcSet={mobileSrcSet || covers.mobileUrl} sizes={contextSizes[context]} />}
         <img
