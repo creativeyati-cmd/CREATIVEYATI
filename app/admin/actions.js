@@ -89,7 +89,7 @@ function settingValues(formData, keys) {
 
 export async function saveContactSettings(formData) {
   await admin();
-  const parsed = contactSettingsSchema.safeParse(settingValues(formData, ["publicEmail", "phone", "whatsappUrl", "location", "availability", "instagramUrl", "youtubeUrl"]));
+  const parsed = contactSettingsSchema.safeParse(settingValues(formData, ["publicEmail", "phone", "bookingUrl", "whatsappUrl", "location", "availability", "instagramUrl", "youtubeUrl"]));
   if (!parsed.success) redirect(`/admin/settings/contact?error=${encodeURIComponent(parsed.error.issues[0].message)}`);
   await saveSetting("contact", parsed.data);
   ["/", "/about", "/contact", "/services"].forEach(revalidatePath);
