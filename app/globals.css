@@ -336,6 +336,7 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
   background:#050505;
 }
 .project-media-backdrop { position:absolute; z-index:0; inset:-5%; background-position:center; background-size:cover; filter:blur(18px) saturate(.9); opacity:.58; transform:scale(1.08); }
+.project-media[data-youtube-portrait-fallback="true"] picture img { background:transparent; }
 .mobile-project .project-media picture,
 .mobile-project .project-media img { pointer-events:none; user-select:none; }
 .project-media-loading {

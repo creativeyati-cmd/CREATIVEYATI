@@ -49,6 +49,7 @@ export default function ProjectMedia({
     className={`project-media project-media--${context} ${className}`.trim()}
     data-orientation={orientation}
     data-playing={playing ? "true" : "false"}
+    data-youtube-portrait-fallback={youtubePortraitFallback ? "true" : "false"}
     style={{ "--cover-fit": youtubePortraitFallback ? "contain" : covers.fit, "--focal-x": `${covers.focalX}%`, "--focal-y": `${covers.focalY}%` }}
   >
     {playing ? <YouTubePlayer video={project} onClose={onClose} /> : <>
@@ -56,6 +57,8 @@ export default function ProjectMedia({
       <picture>
         {!preferMobile && !overrideSource && (covers.mobileUrl || mobileSrcSet) && <source media="(max-width: 720px)" srcSet={mobileSrcSet || covers.mobileUrl} sizes={contextSizes[context]} />}
         <img
+          key={source}
+          ref={(image) => { if (image?.complete && image.naturalWidth && !loaded) requestAnimationFrame(() => setLoaded(true)); }}
           src={source}
           srcSet={!overrideSource ? mainSrcSet || undefined : undefined}
           sizes={contextSizes[context]}
