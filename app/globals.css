@@ -60,7 +60,7 @@ html[data-theme="dark"] { --background:#121212; --foreground:#f2f0eb; --surface:
   .t-tt { transition: none !important; }
 }
 .menu-label { display:none; }
-@media (min-width:621px) {
+@media (min-width:1025px) {
   .public-menu {
     width:calc(100vw - 10vw);
     max-width:820px;
@@ -133,7 +133,7 @@ html[data-theme="dark"] { --background:#121212; --foreground:#f2f0eb; --surface:
 .public-menu a,.header-cta,.play-label { display:inline-flex; align-items:center; gap:8px; }.play-label svg { width:13px; height:13px; }.header-cta svg { width:14px; height:14px; }.public-menu a svg,.admin-shell aside a svg,.admin-shell aside button svg { flex:0 0 auto; }
 
 /* Mobile navigation: an unboxed, vertical liquid-refraction menu. */
-@media (max-width:620px) {
+@media (max-width:1024px) {
   .public-menu {
     position:fixed;
     z-index:60;
@@ -147,8 +147,8 @@ html[data-theme="dark"] { --background:#121212; --foreground:#f2f0eb; --surface:
     background:transparent;
     border:0;
     box-shadow:none;
-    -webkit-backdrop-filter:blur(15px) saturate(1.45);
-    backdrop-filter:blur(15px) saturate(1.45);
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
   }
   .public-menu a {
     position:relative;
