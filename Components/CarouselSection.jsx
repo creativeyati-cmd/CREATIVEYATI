@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createCarousel } from "@/lib/carousel/engine";
 import { createCarouselGui } from "@/lib/carousel/gui";
+import { registerCarouselEntry } from "@/lib/carousel/entry-controller";
 import YouTubePlayer from "./YouTubePlayer";
 import { AdminIcon } from "./Icons";
 
@@ -21,8 +22,9 @@ export default function CarouselSection({ projects }) {
     if (screen !== "webgl" || !mountRef.current || !projects.length) return;
     const engine = createCarousel(mountRef.current, { projects, cursorElement: cursorRef.current, onActiveChange: setActive, onFocusChange: setFocused, onProjectOpen: (index) => router.push(`/work/${projects[index].slug}`) });
     engineRef.current = engine;
+    const unregisterEntry = registerCarouselEntry("desktop", engine.replayEntry);
     const gui = process.env.NODE_ENV === "development" ? createCarouselGui(engine) : null;
-    return () => { gui?.destroy(); engine.destroy(); engineRef.current = null; };
+    return () => { unregisterEntry(); gui?.destroy(); engine.destroy(); engineRef.current = null; };
   }, [screen, projects, router]);
   useEffect(() => { const close = (event) => { if (event.key === "Escape") engineRef.current?.closeFocus(); }; window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close); }, []);
   if (screen !== "webgl") return null;
