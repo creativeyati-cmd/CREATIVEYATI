@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AdminIcon } from "./Icons";
 import YouTubePlayer from "./YouTubePlayer";
-import { projectCovers, projectOrientation, variantSrcSet } from "@/lib/project-media";
+import { projectAspectRatio, projectCovers, projectOrientation, variantSrcSet } from "@/lib/project-media";
 
 const contextSizes = {
   carousel: "(max-width: 720px) 92vw, 60vw",
@@ -23,16 +23,22 @@ export default function ProjectMedia({
   className = "",
 }) {
   const orientation = projectOrientation(project);
+  const videoAspectRatio = projectAspectRatio(project);
   const covers = useMemo(() => projectCovers(project), [project]);
-  const [playing, setPlaying] = useState(autoPlay);
+  const [playing, setPlaying] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [overrideSource, setOverrideSource] = useState("");
   const hasMobileCover = Boolean(covers.mobileUrl || Object.keys(covers.mobileVariants).length);
   const mainSrcSet = variantSrcSet(preferMobile && hasMobileCover ? covers.mobileVariants : covers.mainVariants);
   const mobileSrcSet = variantSrcSet(covers.mobileVariants);
   const source = overrideSource || (preferMobile && covers.mobileUrl) || covers.mainUrl || covers.youtubeUrl || covers.fallbackUrl;
-  const youtubePortraitFallback = orientation === "portrait" && !covers.mainUrl && !(preferMobile && covers.mobileUrl) && source === covers.youtubeUrl;
   const attemptedFallbacks = useRef(new Set());
+
+  useEffect(() => {
+    if (!autoPlay) return;
+    const timer = window.setTimeout(() => setPlaying(true), 220);
+    return () => window.clearTimeout(timer);
+  }, [autoPlay]);
 
   function useNextFallback(event) {
     const failed = event.currentTarget.getAttribute("src");
@@ -47,15 +53,14 @@ export default function ProjectMedia({
 
   return <div
     className={`project-media project-media--${context} ${className}`.trim()}
-    data-orientation={orientation}
+    data-video-orientation={orientation}
+    data-ratio={playing && orientation === "portrait" ? "9:16" : "16:9"}
     data-playing={playing ? "true" : "false"}
-    data-youtube-portrait-fallback={youtubePortraitFallback ? "true" : "false"}
-    style={{ "--cover-fit": youtubePortraitFallback ? "contain" : covers.fit, "--focal-x": `${covers.focalX}%`, "--focal-y": `${covers.focalY}%` }}
+    style={{ "--media-aspect": playing ? videoAspectRatio : 16 / 9, "--cover-fit": "cover", "--focal-x": `${covers.focalX}%`, "--focal-y": `${covers.focalY}%` }}
   >
     {playing ? <YouTubePlayer video={project} onClose={onClose} /> : <>
-      {youtubePortraitFallback && <span className="project-media-backdrop" style={{ backgroundImage: `url("${covers.youtubeUrl.replaceAll('"', "%22")}")` }} aria-hidden="true" />}
       <picture>
-        {!preferMobile && !overrideSource && (covers.mobileUrl || mobileSrcSet) && <source media="(max-width: 720px)" srcSet={mobileSrcSet || covers.mobileUrl} sizes={contextSizes[context]} />}
+        {preferMobile && !overrideSource && (covers.mobileUrl || mobileSrcSet) && <source srcSet={mobileSrcSet || covers.mobileUrl} sizes={contextSizes[context]} />}
         <img
           key={source}
           ref={(image) => { if (image?.complete && image.naturalWidth && !loaded) requestAnimationFrame(() => setLoaded(true)); }}

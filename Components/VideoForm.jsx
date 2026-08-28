@@ -89,8 +89,12 @@ function CoverUpload({ label, kind, cover, setCover, orientation, uploadId, sche
     let dimensions;
     try { dimensions = await imageDimensions(file); }
     catch { setStatus("Upload failed"); setError("This image is corrupted or cannot be decoded."); return; }
-    const minimum = orientation === "portrait" ? { width: 1080, height: 1920 } : { width: 1920, height: 1080 };
-    if (dimensions.width < minimum.width || dimensions.height < minimum.height) setWarning(`Recommended minimum: ${minimum.width} × ${minimum.height}px.`);
+    const minimum = { width: 1280, height: 720 };
+    if (dimensions.width < minimum.width || dimensions.height < minimum.height) {
+      setStatus("Upload failed");
+      setError(`Cover images must be at least ${minimum.width} × ${minimum.height}px.`);
+      return;
+    }
     setStatus("Uploading");
     setProgress(0);
     try {
@@ -118,8 +122,8 @@ function CoverUpload({ label, kind, cover, setCover, orientation, uploadId, sche
   }
 
   const ratio = cover.width && cover.height ? cover.width / cover.height : null;
-  const expectedRatio = orientation === "portrait" ? 9 / 16 : 16 / 9;
-  const mismatch = ratio && Math.abs(ratio - expectedRatio) / expectedRatio > 0.16;
+  const expectedRatio = 16 / 9;
+  const mismatch = ratio && Math.abs(ratio - expectedRatio) / expectedRatio > 0.015;
 
   return <section className="cover-uploader" aria-busy={busy}>
     <div className="cover-uploader-heading"><div><strong>{label}</strong><small>JPG, PNG, WebP or AVIF · maximum 8MB</small></div><div className="cover-uploader-actions"><button type="button" onClick={() => inputRef.current?.click()} disabled={busy}>{cover.url ? "Replace" : "Choose image"}</button>{cover.url && <button type="button" onClick={removeCover} disabled={busy}>Remove</button>}</div></div>
@@ -127,7 +131,7 @@ function CoverUpload({ label, kind, cover, setCover, orientation, uploadId, sche
     {(preview || cover.url) && <img className="cover-upload-preview" src={preview || cover.url} alt="Selected cover preview" />}
     {status && <div className="upload-status"><span>{status}</span>{["Uploading", "Processing"].includes(status) && <progress max="100" value={progress}>{progress}%</progress>}</div>}
     {warning && <p className="form-warning">{warning}</p>}
-    {mismatch && <p className="form-warning">This cover shape differs from the selected {orientation} ratio. Review the crop and focal position below.</p>}
+    {mismatch && <p className="form-warning">This image is not 16:9. It will be cropped inside the fixed landscape frame; review and reposition the focal point before publishing.</p>}
     {error && <div className="upload-error"><p>{error}</p>{retryFile && <button type="button" onClick={() => selectFile(retryFile)} disabled={busy}>Retry</button>}</div>}
   </section>;
 }
@@ -142,15 +146,15 @@ export default function VideoForm({ video, categories, action }) {
   const initialMobile = { url: video?.mobile_cover_image_url || video?.mobile_poster_url || "", key: video?.mobile_cover_storage_key || "", variants: objectValue(video?.mobile_cover_variants), width: 0, height: 0 };
   const [youtubeUrl, setYoutubeUrl] = useState(video?.youtube_url || "");
   const [orientation, setOrientation] = useState(video?.orientation || "landscape");
-  const [coverFit, setCoverFit] = useState(video?.cover_fit || video?.display_mode || "cover");
+  const [status, setStatus] = useState(video?.status || "draft");
+  const coverFit = "cover";
   const [focalX, setFocalX] = useState(Number(video?.cover_focal_x ?? (video?.focal_x == null ? 50 : video.focal_x * 100)));
   const [focalY, setFocalY] = useState(Number(video?.cover_focal_y ?? (video?.focal_y == null ? 50 : video.focal_y * 100)));
   const [coverAlt, setCoverAlt] = useState(video?.cover_alt || "");
   const [mainCover, setMainCover] = useState(initialMain);
-  const [mobileCover, setMobileCover] = useState(initialMobile);
+  const [mobileCover] = useState(initialMobile);
   const [cleanupKeys, setCleanupKeys] = useState([]);
   const [mainUploadBusy, setMainUploadBusy] = useState(false);
-  const [mobileUploadBusy, setMobileUploadBusy] = useState(false);
   const generatedUploadId = useId().replace(/[^a-zA-Z0-9-]/g, "");
   const uploadId = video?.id || `project-${generatedUploadId}`;
   const focalRef = useRef(null);
@@ -186,6 +190,7 @@ export default function VideoForm({ video, categories, action }) {
     <input type="hidden" name="id" value={video?.id || ""} />
     <input type="hidden" name="youtubeVideoId" value={youtubeId || ""} />
     <input type="hidden" name="aspectRatio" value={orientation === "portrait" ? 9 / 16 : 16 / 9} />
+    <input type="hidden" name="coverAspectRatio" value={16 / 9} />
     <input type="hidden" name="coverImageUrl" value={mainCover.url} />
     <input type="hidden" name="coverImageStorageKey" value={mainCover.key} />
     <input type="hidden" name="mobileCoverImageUrl" value={mobileCover.url} />
@@ -197,27 +202,27 @@ export default function VideoForm({ video, categories, action }) {
     <label>Slug<input required name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" defaultValue={video?.slug} /></label>
     <label className="form-wide">YouTube URL<input required name="youtubeUrl" type="url" value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://youtu.be/VIDEO_ID" />{youtubeUrl && <small className={youtubeId ? "field-success" : "form-error"}>{youtubeId ? `Video ID: ${youtubeId}` : "Enter a supported YouTube watch, short, embed or youtu.be link."}</small>}{youtubeThumbnail && <span className="youtube-thumbnail-preview"><span>Generated YouTube thumbnail</span><img src={youtubeThumbnail} alt="Generated YouTube project thumbnail" /></span>}</label>
     <label>Orientation<select name="orientation" value={orientation} onChange={(event) => setOrientation(event.target.value)}><option value="landscape">Landscape — 16:9</option><option value="portrait">Portrait — 9:16</option></select></label>
-    <label>Status<select name="status" defaultValue={video?.status || "draft"}><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
+    <label>Status<select name="status" value={status} onChange={(event) => setStatus(event.target.value)}><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
     <label>Category<select name="categoryId" defaultValue={video?.category_id || ""}><option value="">Uncategorised</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
     <label>Year<input name="year" type="number" min="1900" max="2100" defaultValue={video?.year} /></label>
     <label className="form-wide">Short description<textarea name="shortDescription" defaultValue={video?.short_description} rows="2" /></label>
     <label className="form-wide">Project description<textarea name="description" defaultValue={video?.description} rows="6" /></label>
 
     <div className="form-wide cover-upload-grid">
-      <CoverUpload label="Custom main cover" kind="main" cover={mainCover} setCover={setMainCover} orientation={orientation} uploadId={uploadId} scheduleCleanup={scheduleCleanup} onBusyChange={setMainUploadBusy} />
-      <CoverUpload label="Optional mobile cover" kind="mobile" cover={mobileCover} setCover={setMobileCover} orientation={orientation} uploadId={uploadId} scheduleCleanup={scheduleCleanup} onBusyChange={setMobileUploadBusy} />
+      <CoverUpload label="Required 16:9 project cover" kind="main" cover={mainCover} setCover={setMainCover} orientation="landscape" uploadId={uploadId} scheduleCleanup={scheduleCleanup} onBusyChange={setMainUploadBusy} />
     </div>
 
-    <label>Cover display<select name="coverFit" value={coverFit} onChange={(event) => setCoverFit(event.target.value)}><option value="cover">Cover</option><option value="contain">Contain</option></select></label>
+    <input type="hidden" name="coverFit" value="cover" />
     <label>Alternative text<input name="coverAlt" value={coverAlt} onChange={(event) => setCoverAlt(event.target.value)} placeholder="Describe the project cover" /></label>
     <label>Focal X<input name="coverFocalX" type="range" min="0" max="100" value={focalX} onChange={(event) => setFocalX(Number(event.target.value))} /><small>{focalX}%</small></label>
     <label>Focal Y<input name="coverFocalY" type="range" min="0" max="100" value={focalY} onChange={(event) => setFocalY(Number(event.target.value))} /><small>{focalY}%</small></label>
 
     <section className="form-wide admin-media-previews">
-      <div className="admin-preview-heading"><div><strong>Responsive cover previews</strong><small>Orientation and focal changes update immediately.</small></div></div>
-      <div className="admin-preview-grid"><figure><figcaption>Desktop</figcaption><ProjectMedia project={previewProject} context="admin-preview" priority /></figure><figure><figcaption>Tablet</figcaption><ProjectMedia project={previewProject} context="admin-preview" /></figure><figure><figcaption>Mobile</figcaption><ProjectMedia project={previewProject} context="admin-preview" preferMobile /></figure></div>
+      <div className="admin-preview-heading"><div><strong>Responsive 16:9 cover previews</strong><small>The same crop and focal point are used from desktop to mobile. Video orientation applies only after playback starts.</small></div></div>
+      <div className="admin-preview-grid"><figure><figcaption>Desktop carousel cover</figcaption><ProjectMedia project={previewProject} context="admin-preview" priority /></figure><figure><figcaption>Tablet carousel cover</figcaption><ProjectMedia project={previewProject} context="admin-preview" /></figure><figure><figcaption>Scaled mobile cover</figcaption><ProjectMedia project={previewProject} context="admin-preview" /></figure></div>
       <div ref={focalRef} className="admin-focal-preview" onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); updateFocal(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateFocal(event); }} onPointerUp={(event) => event.currentTarget.releasePointerCapture(event.pointerId)}><ProjectMedia project={previewProject} context="focus-player" /><span className="focal-marker" style={{ left: `${focalX}%`, top: `${focalY}%` }} /><p>Drag to reposition the focal point</p></div>
     </section>
-    <SaveButton disabled={!youtubeId || mainUploadBusy || mobileUploadBusy} />
+    {status === "published" && !mainCover.url && <p className="form-wide form-error">Upload a custom 16:9 cover before publishing this project.</p>}
+    <SaveButton disabled={!youtubeId || mainUploadBusy || (status === "published" && !mainCover.url)} />
   </form>;
 }

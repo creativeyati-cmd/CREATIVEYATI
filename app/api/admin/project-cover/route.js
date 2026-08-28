@@ -32,7 +32,6 @@ export async function POST(request) {
 
   const formData = await request.formData();
   const file = formData.get("file");
-  const orientation = String(formData.get("orientation") || "landscape");
   const kind = formData.get("kind") === "mobile" ? "mobile" : "main";
   const uploadId = safeUploadId(formData.get("uploadId"));
   if (!(file instanceof File) || !file.size) return jsonError("Choose an image to upload.");
@@ -54,11 +53,13 @@ export async function POST(request) {
   if (!metadata.width || !metadata.height || !MIME_FORMATS[file.type].has(metadata.format)) {
     return jsonError("The image contents do not match its file type.");
   }
-  const expected = orientation === "portrait" ? { width: 1080, height: 1920 } : { width: 1920, height: 1080 };
+  const expected = { width: 1280, height: 720 };
   const warnings = [];
   if (metadata.width < expected.width || metadata.height < expected.height) {
-    warnings.push(`Recommended minimum for ${orientation} covers is ${expected.width} × ${expected.height}px.`);
+    return jsonError(`Cover images must be at least ${expected.width} × ${expected.height}px.`);
   }
+  const ratio = metadata.width / metadata.height;
+  if (Math.abs(ratio - 16 / 9) / (16 / 9) > 0.015) warnings.push("This image is not 16:9 and will use the saved focal point when cropped.");
 
   const uploadedKeys = [];
   const variants = {};

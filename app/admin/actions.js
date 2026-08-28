@@ -22,6 +22,7 @@ export async function saveVideo(formData) {
   const parsed = videoSchema.safeParse({ ...raw, categoryId: raw.categoryId || null, year: raw.year || null });
   if (!parsed.success) throw new Error(parsed.error.issues[0].message);
   const data = parsed.data;
+  if (data.status === "published" && !data.coverImageUrl) throw new Error("Upload a custom 16:9 cover before publishing this project.");
   const id = getYouTubeId(data.youtubeUrl);
   const aspectRatio = data.orientation === "portrait" ? 9 / 16 : 16 / 9;
   const record = {
@@ -39,7 +40,7 @@ export async function saveVideo(formData) {
     cover_image_storage_key: data.coverImageStorageKey || null,
     mobile_cover_image_url: data.mobileCoverImageUrl || null,
     mobile_cover_storage_key: data.mobileCoverStorageKey || null,
-    cover_fit: data.coverFit,
+    cover_fit: "cover",
     cover_focal_x: data.coverFocalX,
     cover_focal_y: data.coverFocalY,
     cover_alt: data.coverAlt || `${data.title} cover`,

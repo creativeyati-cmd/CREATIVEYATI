@@ -241,8 +241,8 @@ export default function MobilePortfolio({ videos, showMetadata = true }) {
   return <section ref={rootRef} className="mobile-work mobile-carousel" aria-label="Selected video work">
     {showMetadata && <div ref={metaRef} className="mobile-project-meta" aria-live="polite"><span>{video.category?.name || video.clientName || "Selected work"}</span><h2>{video.title}</h2><p>{video.year || ""}{video.year ? " · " : ""}{video.orientation === "portrait" ? "9:16 portrait" : "16:9 landscape"}</p></div>}
     <div className="mobile-carousel-visual">
-      <div ref={trackRef} className={`mobile-carousel-track active-${video.orientation}`} onScroll={updateActive} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}>
-        {videos.map((item, index) => <button type="button" key={item.id} className={`mobile-project ${item.orientation === "portrait" ? "portrait" : "landscape"} ${active === index ? "is-active" : ""}`} onClick={() => openProject(index)} aria-label={showMetadata ? `Play ${item.title}` : "Play project"} aria-current={active === index ? "true" : undefined}>
+      <div ref={trackRef} className="mobile-carousel-track active-landscape" onScroll={updateActive} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}>
+        {videos.map((item, index) => <button type="button" key={item.id} className={`mobile-project ${active === index ? "is-active" : ""}`} onClick={() => openProject(index)} aria-label={showMetadata ? `Play ${item.title}` : "Play project"} aria-current={active === index ? "true" : undefined}>
           <ProjectMedia project={item} context="carousel" priority={index === active} />
           {showMetadata && <span className="mobile-card-caption"><small>{item.category?.name || item.clientName || "Selected work"}</small><strong>{item.title}</strong></span>}
         </button>)}
