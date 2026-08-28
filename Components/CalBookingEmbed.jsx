@@ -23,7 +23,7 @@ export default function CalBookingEmbed({ bookingUrl }) {
     getCalApi({ namespace }).then((cal) => {
       if (cancelled) return;
       cal("ui", {
-        theme: "auto",
+        theme: "light",
         styles: { branding: { brandColor: "#9BC300" } },
         hideEventTypeDetails: false,
         layout: "month_view",
@@ -42,7 +42,7 @@ export default function CalBookingEmbed({ bookingUrl }) {
       <Cal
         namespace={namespace}
         calLink={calLink}
-        config={{ layout: "month_view", "ui.color-scheme": "auto" }}
+        config={{ layout: "month_view", "ui.color-scheme": "light" }}
         style={{ width: "100%", minHeight: "680px", overflow: "hidden" }}
       />
     </div>

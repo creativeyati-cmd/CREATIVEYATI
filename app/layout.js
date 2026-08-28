@@ -15,5 +15,4 @@ export async function generateMetadata() {
     twitter: { card: "summary_large_image", title: seo.siteTitle, description: seo.siteDescription, images },
   };
 }
-const themeScript = `(()=>{try{const saved=localStorage.getItem('theme');const theme=saved||'light';document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme}catch{document.documentElement.dataset.theme='light'}})()`;
-export default function RootLayout({ children }) { return <html lang="en" data-theme="light" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head><body>{children}</body></html>; }
+export default function RootLayout({ children }) { return <html lang="en" data-theme="light" style={{ colorScheme: "light" }}><body>{children}</body></html>; }

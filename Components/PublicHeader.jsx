@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import ThemeToggle from "./ThemeToggle";
 import { AdminIcon, ChevronDownIcon, SocialIcon } from "./Icons";
 
 const routes = [
@@ -93,14 +92,15 @@ export default function PublicHeader({ site, current = "/" }) {
         >
           <ChevronDownIcon open={open} />
         </button>
-        {(open || closing) && (
-          <nav
-            id="site-navigation"
-            className={`t-dropdown public-menu mobile-nav-menu ${open ? "is-open" : ""} ${closing ? "is-closing" : ""}`}
-            data-origin="top-left"
-            aria-label="Site navigation"
-            aria-hidden={!open}
-          >
+        <div className={`mobile-menu-layer ${open ? "is-open" : ""} ${closing ? "is-closing" : ""}`}>
+          <div className="mobile-menu-glass">
+            <nav
+              id="site-navigation"
+              className={`t-dropdown public-menu mobile-nav-menu ${open ? "is-open" : ""} ${closing ? "is-closing" : ""}`}
+              data-origin="top-left"
+              aria-label="Site navigation"
+              aria-hidden={!open}
+            >
             {routes.map((route) => (
               <span className="t-tt-wrap mobile-nav-item" key={route.href}>
                 <Link
@@ -135,11 +135,11 @@ export default function PublicHeader({ site, current = "/" }) {
                 <span className="t-tt" role="tooltip">YouTube</span>
               </span>
             )}
-          </nav>
-        )}
+            </nav>
+          </div>
+        </div>
       </div>
       <nav className="header-actions">
-        <ThemeToggle iconOnly />
         <Link className="header-cta" href="/contact">{site.ctaLabel}<AdminIcon name="arrow" /></Link>
       </nav>
     </header>
