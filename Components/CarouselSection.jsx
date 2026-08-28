@@ -23,12 +23,12 @@ export default function CarouselSection({ projects }) {
     engineRef.current = engine;
     const gui = process.env.NODE_ENV === "development" ? createCarouselGui(engine) : null;
     return () => { gui?.destroy(); engine.destroy(); engineRef.current = null; };
-  }, [screen, projects]);
+  }, [screen, projects, router]);
   useEffect(() => { const close = (event) => { if (event.key === "Escape") engineRef.current?.closeFocus(); }; window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close); }, []);
   if (screen !== "webgl") return null;
   return <section ref={mountRef} className="carousel-shell" aria-label="Selected video work">
     <div className="carousel-meta"><span>{project?.category?.name || project?.clientName || "Selected work"}</span><h2>{project?.title}</h2><p>{project?.year || ""} · {project?.orientation === "portrait" ? "9:16" : "16:9"}</p></div>
-    <p className="carousel-count">{String(active + 1).padStart(2, "0")} / {String(projects.length).padStart(2, "0")}</p><p className="carousel-hint">Scroll to navigate</p><span className="play-label"><AdminIcon name="play" />Play film</span>
+    <p className="carousel-count">{String(active + 1).padStart(2, "0")}/{String(projects.length).padStart(2, "0")}</p><p className="carousel-hint">Scroll to navigate</p><span className="play-label"><AdminIcon name="play" />Play film</span>
     <span ref={cursorRef} className="carousel-cursor" aria-hidden="true">View</span>
     {focused && project && <div className="focus-project"><div><span>{project.category?.name || "Selected work"} · {project.year || ""}</span><h2>{project.title}</h2><p>{project.description || project.shortDescription}</p></div><YouTubePlayer video={project} onClose={() => engineRef.current?.closeFocus()} /></div>}
   </section>;
