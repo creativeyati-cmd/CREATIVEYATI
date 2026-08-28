@@ -30,7 +30,7 @@ export default function CarouselSection({ projects, showMetadata = true }) {
   }, [projects]);
   useEffect(() => { const close = (event) => { if (event.key === "Escape") engineRef.current?.closeFocus(); }; window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close); }, []);
   useEffect(() => { if (!focused) return; const previous = document.body.style.overflow; document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = previous; }; }, [focused]);
-  return <section ref={mountRef} className={`carousel-shell ${projects.length === 1 ? "is-single" : "is-multiple"} ${entryDone ? "entry-done" : "is-entering"}`} aria-label="Selected video work" data-project-count={projects.length}>
+  return <section ref={mountRef} className={`carousel-shell ${entryDone ? "entry-done" : "is-entering"}`} aria-label="Selected video work">
     {showMetadata && <div className="carousel-meta"><span>{project?.category?.name || project?.clientName || "Selected work"}</span><h2>{project?.title}</h2><p>{project?.year || ""} · {project?.orientation === "portrait" ? "9:16" : "16:9"}</p></div>}
     <p className="carousel-count">{String(active + 1).padStart(2, "0")}/{String(projects.length).padStart(2, "0")}</p>{projects.length > 1 && <p className="carousel-hint"><span className="desktop-copy">Scroll to navigate</span><span className="mobile-copy">Swipe to navigate</span></p>}<span className="play-label"><AdminIcon name="play" />Play film</span>
     <span ref={cursorRef} className="carousel-cursor" aria-hidden="true">View</span>
