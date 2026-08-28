@@ -1,1 +1,10 @@
-export default function ContactSettings() { return <><div className="admin-title"><p>SETTINGS</p><h1>Contact details</h1></div><p className="empty-state">Store public email, phone, WhatsApp, availability, location and social links in <code>site_settings</code>. Values are only displayed when configured.</p></>; }
+import Link from "next/link";
+import { saveContactSettings } from "@/app/admin/actions";
+import { getContactSettings } from "@/lib/data/settings";
+import { getSiteContent } from "@/lib/data/site";
+
+export default async function ContactSettings({ searchParams }) {
+  const [stored, site, query] = await Promise.all([getContactSettings(), getSiteContent(), searchParams]);
+  const settings = stored._configured ? stored : { ...stored, publicEmail: site.publicEmail, phone: site.phone, availability: site.availability, instagramUrl: site.instagramUrl, youtubeUrl: site.youtubeUrl };
+  return <><div className="admin-title"><p>SETTINGS</p><h1>Contact details</h1><p className="admin-lede">These values update the public portfolio immediately after saving.</p><Link href="/contact">Preview contact page</Link></div>{query.saved && <p className="success-note">Contact settings updated.</p>}{query.error && <p className="form-error">{query.error}</p>}<form className="admin-form" action={saveContactSettings}><label>Public email<input name="publicEmail" type="email" defaultValue={settings.publicEmail} /></label><label>Phone<input name="phone" type="tel" defaultValue={settings.phone} /></label><label>WhatsApp URL<input name="whatsappUrl" type="url" placeholder="https://wa.me/234..." defaultValue={settings.whatsappUrl} /></label><label>Location<input name="location" defaultValue={settings.location} placeholder="Lagos, Nigeria" /></label><label className="form-wide">Availability message<input name="availability" defaultValue={settings.availability} /></label><label>Instagram URL<input name="instagramUrl" type="url" defaultValue={settings.instagramUrl} /></label><label>YouTube URL<input name="youtubeUrl" type="url" defaultValue={settings.youtubeUrl} /></label><button className="button">Save contact settings</button></form></>;
+}

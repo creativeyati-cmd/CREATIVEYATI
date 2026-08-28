@@ -5,7 +5,10 @@ import { MoonIcon, SunIcon } from "./Icons";
 
 export default function ThemeToggle({ iconOnly = false }) {
   const [theme, setTheme] = useState("dark");
-  useEffect(() => setTheme(document.documentElement.dataset.theme || "dark"), []);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setTheme(document.documentElement.dataset.theme || "dark"));
+    return () => cancelAnimationFrame(frame);
+  }, []);
   function toggle() {
     const next = theme === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
