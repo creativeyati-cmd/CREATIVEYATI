@@ -229,6 +229,10 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
 .carousel-canvas { position:absolute; inset:0; display:block; width:100%!important; height:100%!important; }
 .mobile-card-caption { display:none; }
 .mobile-copy { display:none; }
+.portfolio-home .hero-statement { display:flex; flex-direction:column; align-items:center; gap:11px; }
+.portfolio-home .hero-statement h1,
+.portfolio-home .hero-statement p { margin:0; }
+.portfolio-home .hero-statement .button { display:flex; align-items:center; justify-content:center; min-width:150px; min-height:49px; padding:16px 24px; border-radius:2px; background:#000; color:#d4f84a; font-family:"Mochiy Pop One",sans-serif; font-size:16px; line-height:1.07; letter-spacing:-.08em; text-transform:capitalize; }
 
 @media (min-width:1025px) {
   .portfolio-home .site-header { min-height:68px; padding-block:14px; }
@@ -240,7 +244,7 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
   .carousel-hint { left:clamp(48px,5vw,72px); }
   .carousel-count { right:clamp(48px,5vw,72px); }
   .play-label { bottom:clamp(76px,10svh,112px); }
-  .hero-statement { padding:clamp(76px,10svh,124px) 5vw clamp(70px,9svh,110px); }
+  .portfolio-home .hero-statement { padding:clamp(11px,1.4svh,18px) 5vw clamp(70px,9svh,110px); }
 }
 
 @media (max-width:1024px) {
@@ -289,9 +293,9 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
   .mobile-player .player { width:min(100%,960px); }
   .mobile-player .player-portrait { width:min(82vw,calc(76svh * .5625)); height:auto; max-height:76svh; }
   .mobile-player .player-close { top:-34px; }
-  .hero-statement { padding:clamp(18px,3svh,30px) 20px 64px; }
-  .hero-statement h1 { max-width:720px; margin:auto; font-size:clamp(1.9rem,6.4vw,2.4rem); line-height:1.08; }
-  .hero-statement p { margin:18px auto 20px; }
+  .portfolio-home .hero-statement { padding:11px 20px 64px; }
+  .hero-statement h1 { max-width:720px; font-size:clamp(1.9rem,6.4vw,2.4rem); line-height:1.08; }
+  .hero-statement p { margin:0; }
 }
 
 @media (max-width:620px) {
@@ -305,7 +309,9 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
   .mobile-carousel-track.active-landscape { height:52vw; }
   .mobile-carousel-track.active-portrait { height:min(146vw,70svh); }
   .mobile-carousel-indicators { padding-top:12px; }
-  .hero-statement h1 { font-size:clamp(1.85rem,8.2vw,2.35rem); }
+  .portfolio-home .hero-statement { width:min(417px,100%); max-width:417px; }
+  .portfolio-home .hero-statement h1 { width:min(372px,calc(100vw - 28px)); max-width:372px; font-size:24px; line-height:1.07; letter-spacing:-.08em; text-align:center; text-transform:capitalize; }
+  .portfolio-home .hero-statement p { width:min(296px,calc(100vw - 40px)); max-width:296px; font-size:12px; line-height:1.33; letter-spacing:-.08em; text-align:center; text-transform:capitalize; }
 }
 
 @media (max-width:620px) {
@@ -560,7 +566,7 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
 
 @media (max-width:1024px) {
   .portfolio-home .mobile-carousel { margin-top:0; }
-  .portfolio-home .hero-statement { padding-top:clamp(46px,8svh,72px); }
+  .portfolio-home .hero-statement { padding-top:11px; }
   .portfolio-home .mobile-carousel-track.active-portrait { height:min(139vw,62svh); min-height:320px; }
   .portfolio-home .mobile-project.portrait { flex-basis:min(78vw,calc(62svh * .5625)); }
   .mobile-carousel-track { position:relative; z-index:1; }

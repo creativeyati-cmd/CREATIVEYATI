@@ -36,7 +36,7 @@ export default function ProjectMedia({
 
   useEffect(() => {
     if (!autoPlay) return;
-    const timer = window.setTimeout(() => setPlaying(true), 220);
+    const timer = window.setTimeout(() => setPlaying(true), 100);
     return () => window.clearTimeout(timer);
   }, [autoPlay]);
 
