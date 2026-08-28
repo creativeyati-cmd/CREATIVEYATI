@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { gsap } from "gsap";
 import { registerCarouselEntry } from "@/lib/carousel/entry-controller";
 import { AdminIcon } from "./Icons";
@@ -250,6 +251,6 @@ export default function MobilePortfolio({ videos, showMetadata = true }) {
     </div>
     <button ref={playRef} className="mobile-play" type="button" onClick={() => { if (entryCompleteRef.current) setFocused(true); }}><AdminIcon name="play" /> Play film</button>
     <div ref={indicatorsRef} className="mobile-carousel-indicators"><span>{videos.length > 1 ? "Swipe to navigate" : ""}</span><span>{twoDigits(active + 1)}/{twoDigits(videos.length)}</span></div>
-    {focused && <div className="mobile-player" role="dialog" aria-modal="true" aria-label={`${video.title} player`}><ProjectMedia project={video} context="focus-player" autoPlay onClose={() => setFocused(false)} /></div>}
+    {focused && <div className="mobile-player" role="dialog" aria-modal="true" aria-label={`${video.title} player`}><div className="mobile-player-content"><ProjectMedia project={video} context="focus-player" autoPlay onClose={() => setFocused(false)} /><Link className="button focus-view-more" href={`/work/${video.slug}`}>View More</Link></div></div>}
   </section>;
 }
