@@ -1,0 +1,13 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import PublicHeader from "@/Components/PublicHeader";
+import PublicFooter from "@/Components/PublicFooter";
+import { getSiteContent } from "@/lib/data/site";
+import { getPublicCourse, coursePrice, formatMoney } from "@/lib/data/courses";
+import { getPublicSocialLinks } from "@/lib/data/social";
+
+export async function generateMetadata({ params }) { const { slug } = await params; const course = await getPublicCourse(slug); return course ? { title: course.seoTitle || course.title, description: course.seoDescription || course.shortDescription, openGraph: { images: course.ogImageUrl || course.coverImageUrl ? [course.ogImageUrl || course.coverImageUrl] : [] } } : {}; }
+export default async function CoursePage({ params }) {
+  const { slug } = await params; const [course, site, socialLinks] = await Promise.all([getPublicCourse(slug), getSiteContent(), getPublicSocialLinks()]); if (!course) notFound(); const price = coursePrice(course);
+  return <main className="public-page"><PublicHeader site={site} current="/courses" /><article className="course-detail public-note"><Link className="inline-link" href="/courses">All courses</Link><div className="course-hero"><div><p className="eyebrow">{course.category || "COURSE"}</p><h1 className="page-title">{course.title}</h1><p className="public-lede">{course.shortDescription}</p><dl className="course-meta"><div><dt>Instructor</dt><dd>{course.instructor || site.creatorName}</dd></div><div><dt>Level</dt><dd>{course.difficulty}</dd></div><div><dt>Language</dt><dd>{course.language}</dd></div>{course.estimatedDuration && <div><dt>Duration</dt><dd>{course.estimatedDuration}</dd></div>}</dl><strong className="course-price">{price === 0 ? "Free" : formatMoney(price, course.currency)}</strong><Link className="button" href={`/checkout/${course.id}`}>{price === 0 ? "Enroll free" : "Buy course"}</Link></div><img src={course.coverImageUrl} alt="" /></div><section className="course-description"><h2>About this course</h2>{course.description.split(/\n\n+/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</section>{course.learningOutcomes.length > 0 && <section><h2>What you will learn</h2><ul>{course.learningOutcomes.map((item) => <li key={item}>{item}</li>)}</ul></section>}<section className="course-curriculum"><h2>Curriculum</h2>{course.sections.map((section) => <div key={section.id}><h3>{section.title}</h3>{section.lessons.map((lesson) => <p key={lesson.id}><span>{lesson.title}</span>{lesson.isPreview ? <Link href={`/courses/${course.slug}/preview/${lesson.id}`}>Preview</Link> : <small>Enrolled students</small>}</p>)}</div>)}</section></article><PublicFooter site={site} socialLinks={socialLinks} /></main>;
+}

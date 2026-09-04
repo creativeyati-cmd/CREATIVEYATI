@@ -1,0 +1,3 @@
+import { notFound, redirect } from "next/navigation";
+import { getEnrolledCourse } from "@/lib/data/courses";
+export default async function EnrolledCoursePage({ params }) { const { courseSlug } = await params; const { user, course, progress } = await getEnrolledCourse(courseSlug); if (!user) redirect(`/login?next=${encodeURIComponent(`/learn/${courseSlug}`)}`); if (!course) notFound(); const lessons = course.sections.flatMap((section) => section.lessons); const next = lessons.find((lesson) => !progress.some((item) => item.lesson_id === lesson.id && item.completed)) || lessons[0]; if (!next) return <section className="lesson-page public-note"><h1>{course.title}</h1><p>No lessons have been published yet.</p></section>; redirect(`/learn/${courseSlug}/lesson/${next.id}`); }

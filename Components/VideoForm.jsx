@@ -207,6 +207,14 @@ export default function VideoForm({ video, categories, action }) {
     <label>Year<input name="year" type="number" min="1900" max="2100" defaultValue={video?.year} /></label>
     <label className="form-wide">Short description<textarea name="shortDescription" defaultValue={video?.short_description} rows="2" /></label>
     <label className="form-wide">Project description<textarea name="description" defaultValue={video?.description} rows="6" /></label>
+    <label>Client name<input name="clientName" defaultValue={video?.client_name} /></label>
+    <label>Creative role<input name="creativeRole" defaultValue={video?.creative_role} /></label>
+    <label>Director<input name="director" defaultValue={video?.director} /></label>
+    <label>Production company<input name="productionCompany" defaultValue={video?.production_company} /></label>
+    <label>Location<input name="location" defaultValue={video?.location} /></label>
+    <label>External project URL<input name="externalProjectUrl" type="url" defaultValue={video?.external_project_url} /></label>
+    <label className="form-wide">Tags · comma separated<input name="tags" defaultValue={Array.isArray(video?.tags) ? video.tags.join(", ") : ""} /></label>
+    <label className="form-wide">Credits · one per line, Role: Name<textarea name="credits" rows="5" defaultValue={Array.isArray(video?.credits) ? video.credits.map((credit) => typeof credit === "string" ? credit : `${credit.role || credit.title || "Credit"}: ${credit.name || credit.value || ""}`).join("\n") : ""} /></label>
 
     <div className="form-wide cover-upload-grid">
       <CoverUpload label="Required 16:9 project cover" kind="main" cover={mainCover} setCover={setMainCover} orientation="landscape" uploadId={uploadId} scheduleCleanup={scheduleCleanup} onBusyChange={setMainUploadBusy} />

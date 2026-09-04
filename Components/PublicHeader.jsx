@@ -24,6 +24,7 @@ export default function PublicHeader({ site, current = "/" }) {
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+  const profilePosition = `${Number(site.profileFocalX) || 50}% ${Number(site.profileFocalY) || 50}%`;
 
   function close() {
     if (!open) return;
@@ -71,12 +72,17 @@ export default function PublicHeader({ site, current = "/" }) {
     };
   }, [open]);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("portfolio-menu-change", { detail: { open } }));
+    return () => window.dispatchEvent(new CustomEvent("portfolio-menu-change", { detail: { open: false } }));
+  }, [open]);
+
   return (
     <header className="site-header" ref={root}>
       <div className="identity-wrap">
         <Link href="/" className="identity">
           {site.profileImage ? (
-            <img className="profile-image" src={site.profileImage} alt="" />
+            <img className="profile-image" src={site.profileImage} style={{ objectPosition: profilePosition }} alt="" />
           ) : (
             <span className="identity-mark">{initials}</span>
           )}

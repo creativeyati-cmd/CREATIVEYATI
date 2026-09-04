@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { getAdminCourses, formatMoney } from "@/lib/data/courses";
+export default async function AdminCoursesPage() { const courses = await getAdminCourses(); return <><div className="admin-title"><p>COURSES</p><h1>Courses</h1><Link className="button" href="/admin/courses/new">Add course</Link></div>{courses.length ? <div className="admin-list">{courses.map((course) => <Link key={course.id} href={`/admin/courses/${course.id}/edit`}><span>{course.title}<small>{course.category || "Uncategorised"}</small></span><small>{course.status} · {course.isFree ? "Free" : formatMoney(course.priceMinor, course.currency)}</small></Link>)}</div> : <p className="empty-state">No courses yet.</p>}</>; }

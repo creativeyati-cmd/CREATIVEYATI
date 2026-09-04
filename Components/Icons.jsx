@@ -10,7 +10,21 @@ export function MoonIcon({ size = 17 }) { return <svg fill="none" height={size} 
 
 export function SoundIcon({ muted = false, size = 16 }) { return <svg aria-hidden="true" fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width={size}><path d="M11 5 6 9H3v6h3l5 4V5Z" />{muted ? <><path d="m16 9 5 6M21 9l-5 6" /></> : <><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" /></>}</svg>; }
 
-export function SocialIcon({ name, size = 16 }) { return <svg aria-hidden="true" fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" viewBox="0 0 24 24" width={size}>{name === "instagram" ? <><rect height="18" rx="5" width="18" x="3" y="3" /><circle cx="12" cy="12" r="4" /><path d="M17.5 6.5h.01" /></> : <><path d="M22 12c0 2.3-.2 3.8-.5 4.8a4.8 4.8 0 0 1-2.7 2.7C17.8 19.8 16.3 20 12 20s-5.8-.2-6.8-.5a4.8 4.8 0 0 1-2.7-2.7C2.2 15.8 2 14.3 2 12s.2-3.8.5-4.8a4.8 4.8 0 0 1 2.7-2.7C6.2 4.2 7.7 4 12 4s5.8.2 6.8.5a4.8 4.8 0 0 1 2.7 2.7c.3 1 .5 2.5.5 4.8Z" /><path d="m10 8 6 4-6 4Z" /></>}</svg>; }
+export function SocialIcon({ name, size = 16 }) {
+  const icon = {
+    instagram: <><rect height="18" rx="5" width="18" x="3" y="3" /><circle cx="12" cy="12" r="4" /><path d="M17.5 6.5h.01" /></>,
+    youtube: <><path d="M22 12c0 2.3-.2 3.8-.5 4.8a4.8 4.8 0 0 1-2.7 2.7C17.8 19.8 16.3 20 12 20s-5.8-.2-6.8-.5a4.8 4.8 0 0 1-2.7-2.7C2.2 15.8 2 14.3 2 12s.2-3.8.5-4.8a4.8 4.8 0 0 1 2.7-2.7C6.2 4.2 7.7 4 12 4s5.8.2 6.8.5a4.8 4.8 0 0 1 2.7 2.7c.3 1 .5 2.5.5 4.8Z" /><path d="m10 8 6 4-6 4Z" /></>,
+    tiktok: <path d="M15 4v10.5a5 5 0 1 1-4-4.9M15 4c.7 2.4 2.3 3.8 5 4" />,
+    vimeo: <path d="M3 8c2.3-2.7 4.8-3.5 6-.7.7 1.7 1.2 5.3 2.2 7.2.8 1.6 1.4 1.8 2.5.2 1.1-1.5 2.4-3.7 1.2-4.3-.6-.3-1.5 0-2.2.5C17.8 5.8 20.3 4 21 5.7c.8 2.1-1.1 6.3-3.8 9.6-2.9 3.6-6.7 5.5-8.8 2.4C6.9 15.5 6.2 9.6 5.2 9c-.5-.3-1.2.2-1.8.7Z" />,
+    linkedin: <><path d="M4 9v11M4 5.5v.01M9 20v-6c0-3 1.5-5 4.5-5S19 11 19 14v6M9 10v10" /></>,
+    x: <path d="m4 4 16 16M20 4 4 20" />,
+    behance: <><path d="M4 5h6a4 4 0 0 1 0 8H4zM4 13h7a3.5 3.5 0 0 1 0 7H4zM16 8h5M15 15h7a4 4 0 1 0-1 3" /></>,
+    dribbble: <><circle cx="12" cy="12" r="9" /><path d="M6 5.5c4 3 7 7.5 8.5 15M4 14c5-1.5 10-1.7 16 .5M17.5 6.5c-3 3-7 4.7-13 5" /></>,
+    whatsapp: <><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5Z" /><path d="M9 8.5c.8 3 2.2 4.5 5.5 6" /></>,
+    email: <><rect x="3" y="5" width="18" height="14" rx="1" /><path d="m4 7 8 6 8-6" /></>,
+  }[name];
+  return <svg aria-hidden="true" fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" viewBox="0 0 24 24" width={size}>{icon || <circle cx="12" cy="12" r="9" />}</svg>;
+}
 
 export function ChevronDownIcon({ size = 16, open = false }) { const reduceMotion = useReducedMotion(); return <motion.svg aria-hidden="true" animate={{ rotate: open ? 180 : 0, y: open ? 1 : 0 }} fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" transition={{ duration: reduceMotion ? 0 : .25 }} viewBox="0 0 24 24" width={size}><path d="m6 9 6 6 6-6" /></motion.svg>; }
 
