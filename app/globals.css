@@ -628,10 +628,10 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
   transition:opacity .28s var(--ease-smooth-out),transform .28s var(--ease-smooth-out);
 }
 .carousel-shell.is-entering .carousel-count,
-.carousel-shell.is-entering .carousel-hint,
+.carousel-shell.is-entering .carousel-hint { opacity:0; transform:translateY(10px); }
 .carousel-shell.is-entering .play-label { opacity:0; transform:translateX(-50%) translateY(10px); }
 .carousel-shell.entry-done .carousel-count,
-.carousel-shell.entry-done .carousel-hint,
+.carousel-shell.entry-done .carousel-hint { opacity:1; transform:translateY(0); }
 .carousel-shell.entry-done .play-label { opacity:1; transform:translateX(-50%) translateY(0); }
 
 /* One mobile WebGL lens overlays the active native-swipe poster. */

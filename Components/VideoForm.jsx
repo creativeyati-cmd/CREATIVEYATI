@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import NextImage from "next/image";
 import ProjectMedia from "./ProjectMedia";
 import { getYouTubeId, thumbnailUrl } from "@/lib/youtube";
 
@@ -128,7 +129,7 @@ function CoverUpload({ label, kind, cover, setCover, orientation, uploadId, sche
   return <section className="cover-uploader" aria-busy={busy}>
     <div className="cover-uploader-heading"><div><strong>{label}</strong><small>JPG, PNG, WebP or AVIF · maximum 8MB</small></div><div className="cover-uploader-actions"><button type="button" onClick={() => inputRef.current?.click()} disabled={busy}>{cover.url ? "Replace" : "Choose image"}</button>{cover.url && <button type="button" onClick={removeCover} disabled={busy}>Remove</button>}</div></div>
     <input ref={inputRef} className="cover-file-input" type="file" accept=".jpg,.jpeg,.png,.webp,.avif,image/jpeg,image/png,image/webp,image/avif" onChange={(event) => selectFile(event.target.files?.[0])} />
-    {(preview || cover.url) && <img className="cover-upload-preview" src={preview || cover.url} alt="Selected cover preview" />}
+    {(preview || cover.url) && <NextImage className="cover-upload-preview" src={preview || cover.url} width={960} height={540} sizes="(max-width: 780px) 90vw, 780px" unoptimized={Boolean(preview)} alt="Selected cover preview" />}
     {status && <div className="upload-status"><span>{status}</span>{["Uploading", "Processing"].includes(status) && <progress max="100" value={progress}>{progress}%</progress>}</div>}
     {warning && <p className="form-warning">{warning}</p>}
     {mismatch && <p className="form-warning">This image is not 16:9. It will be cropped inside the fixed landscape frame; review and reposition the focal point before publishing.</p>}
@@ -200,7 +201,7 @@ export default function VideoForm({ video, categories, action }) {
     <input type="hidden" name="cleanupStorageKeys" value={JSON.stringify(cleanupKeys)} />
     <label>Title<input required name="title" defaultValue={video?.title} /></label>
     <label>Slug<input required name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" defaultValue={video?.slug} /></label>
-    <label className="form-wide">YouTube URL<input required name="youtubeUrl" type="url" value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://youtu.be/VIDEO_ID" />{youtubeUrl && <small className={youtubeId ? "field-success" : "form-error"}>{youtubeId ? `Video ID: ${youtubeId}` : "Enter a supported YouTube watch, short, embed or youtu.be link."}</small>}{youtubeThumbnail && <span className="youtube-thumbnail-preview"><span>Generated YouTube thumbnail</span><img src={youtubeThumbnail} alt="Generated YouTube project thumbnail" /></span>}</label>
+    <label className="form-wide">YouTube URL<input required name="youtubeUrl" type="url" value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://youtu.be/VIDEO_ID" />{youtubeUrl && <small className={youtubeId ? "field-success" : "form-error"}>{youtubeId ? `Video ID: ${youtubeId}` : "Enter a supported YouTube watch, short, embed or youtu.be link."}</small>}{youtubeThumbnail && <span className="youtube-thumbnail-preview"><span>Generated YouTube thumbnail</span><NextImage src={youtubeThumbnail} width={480} height={270} sizes="320px" alt="Generated YouTube project thumbnail" /></span>}</label>
     <label>Orientation<select name="orientation" value={orientation} onChange={(event) => setOrientation(event.target.value)}><option value="landscape">Landscape — 16:9</option><option value="portrait">Portrait — 9:16</option></select></label>
     <label>Status<select name="status" value={status} onChange={(event) => setStatus(event.target.value)}><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
     <label>Category<select name="categoryId" defaultValue={video?.category_id || ""}><option value="">Uncategorised</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>

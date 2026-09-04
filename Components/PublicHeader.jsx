@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { AdminIcon, ChevronDownIcon, SocialIcon } from "./Icons";
 
@@ -82,7 +83,7 @@ export default function PublicHeader({ site, current = "/" }) {
       <div className="identity-wrap">
         <Link href="/" className="identity">
           {site.profileImage ? (
-            <img className="profile-image" src={site.profileImage} style={{ objectPosition: profilePosition }} alt="" />
+            <Image className="profile-image" src={site.profileImage} width={46} height={46} sizes="(max-width: 767px) 40px, 46px" style={{ objectPosition: profilePosition }} alt={`${site.creatorName} profile`} priority />
           ) : (
             <span className="identity-mark">{initials}</span>
           )}

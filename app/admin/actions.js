@@ -254,6 +254,25 @@ export async function saveCourseSettings(formData) {
   await admin(); await saveSetting("course", { homepageEnabled: formData.get("homepageEnabled") === "on", homepageHeading: String(formData.get("homepageHeading") || "").trim(), homepageCopy: String(formData.get("homepageCopy") || "").trim(), homepageLimit: Math.min(3, Math.max(1, Number(formData.get("homepageLimit")) || 3)) }); revalidatePath("/"); redirect("/admin/course-settings?saved=1");
 }
 
+function boundedNumber(value, min, max, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+}
+
+export async function saveCarouselSettings(formData) {
+  await admin();
+  await saveSetting("carousel", {
+    enabled: formData.get("enabled") === "on",
+    direction: formData.get("direction") === "right" ? "right" : "left",
+    desktopSpeed: boundedNumber(formData.get("desktopSpeed"), 10, 60, 32),
+    mobileSpeed: boundedNumber(formData.get("mobileSpeed"), 10, 40, 22),
+    resumeDelay: boundedNumber(formData.get("resumeDelay"), 0, 6000, 1000),
+    disableForReducedMotion: formData.get("disableForReducedMotion") === "on",
+  });
+  revalidatePath("/");
+  redirect("/admin/settings/carousel?saved=1");
+}
+
 export async function saveCoupon(formData) {
   await admin(); const supabase = await createSupabaseServerClient(); const code = String(formData.get("code") || "").trim().toUpperCase(); const value = Number(formData.get("discountValue")); if (!code || !Number.isFinite(value) || value <= 0) throw new Error("Coupon code and discount are required."); await supabase.from("coupons").insert({ code, discount_type: String(formData.get("discountType") || "percent"), discount_value: value, currency: String(formData.get("currency") || "NGN").toUpperCase(), max_redemptions: Number(formData.get("maxRedemptions")) || null, starts_at: String(formData.get("startsAt") || "") || null, expires_at: String(formData.get("expiresAt") || "") || null, enabled: formData.get("enabled") === "on" }); revalidatePath("/admin/coupons");
 }

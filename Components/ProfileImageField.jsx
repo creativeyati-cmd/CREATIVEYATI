@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 
 export default function ProfileImageField({ site }) {
   const input = useRef(null);
@@ -38,7 +39,7 @@ export default function ProfileImageField({ site }) {
     <input type="hidden" name="profileCleanupKey" value={cleanupKey} />
     <div className="profile-upload-heading"><div><strong>Navigation profile image</strong><small>JPG, PNG, WebP or AVIF · maximum 8MB</small></div><div><button type="button" onClick={() => input.current?.click()}>{image ? "Replace" : "Upload"}</button>{image && <button type="button" onClick={remove}>Remove</button>}</div></div>
     <input ref={input} className="cover-file-input" type="file" accept=".jpg,.jpeg,.png,.webp,.avif,image/jpeg,image/png,image/webp,image/avif" onChange={(event) => upload(event.target.files?.[0])} />
-    <div className="profile-preview-grid"><figure><div className="profile-crop-preview is-desktop">{image ? <img src={image} style={{ objectPosition: position }} alt="Desktop circular crop preview" /> : <span>FM</span>}</div><figcaption>Desktop · 46px</figcaption></figure><figure><div className="profile-crop-preview is-mobile">{image ? <img src={image} style={{ objectPosition: position }} alt="Mobile circular crop preview" /> : <span>FM</span>}</div><figcaption>Mobile · 40px</figcaption></figure></div>
+    <div className="profile-preview-grid"><figure><div className="profile-crop-preview is-desktop">{image ? <Image src={image} width={46} height={46} sizes="46px" style={{ objectPosition: position }} alt="Desktop circular crop preview" /> : <span>FM</span>}</div><figcaption>Desktop · 46px</figcaption></figure><figure><div className="profile-crop-preview is-mobile">{image ? <Image src={image} width={40} height={40} sizes="40px" style={{ objectPosition: position }} alt="Mobile circular crop preview" /> : <span>FM</span>}</div><figcaption>Mobile · 40px</figcaption></figure></div>
     <div className="profile-focal-controls"><label>Horizontal crop<input name="profileFocalX" type="range" min="0" max="100" value={focalX} onChange={(event) => setFocalX(event.target.value)} /></label><label>Vertical crop<input name="profileFocalY" type="range" min="0" max="100" value={focalY} onChange={(event) => setFocalY(event.target.value)} /></label></div>
     {status && <p className="field-success">{status}</p>}{error && <p className="form-error">{error}</p>}
   </section>;
