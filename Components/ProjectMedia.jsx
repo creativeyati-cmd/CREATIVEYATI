@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AdminIcon } from "./Icons";
-import YouTubePlayer from "./YouTubePlayer";
+import ExternalVideoPlayer from "./ExternalVideoPlayer";
 import { projectAspectRatio, projectCovers, projectOrientation, variantSrcSet } from "@/lib/project-media";
 
 const contextSizes = {
@@ -58,7 +58,7 @@ export default function ProjectMedia({
     data-playing={playing ? "true" : "false"}
     style={{ "--media-aspect": playing ? videoAspectRatio : 16 / 9, "--cover-fit": "cover", "--focal-x": `${covers.focalX}%`, "--focal-y": `${covers.focalY}%` }}
   >
-    {playing ? <YouTubePlayer video={project} onClose={onClose} /> : <>
+    {playing ? <ExternalVideoPlayer video={project} onClose={onClose} /> : <>
       <picture>
         {preferMobile && !overrideSource && (covers.mobileUrl || mobileSrcSet) && <source srcSet={mobileSrcSet || covers.mobileUrl} sizes={contextSizes[context]} />}
         <img

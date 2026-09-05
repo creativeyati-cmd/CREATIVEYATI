@@ -4,7 +4,7 @@ import CurriculumReorder from "@/Components/CurriculumReorder";
 import { getAdminCourse } from "@/lib/data/courses";
 import { deleteCourseLesson, deleteCourseResource, deleteCourseSection, saveCourseLesson, saveCourseSection } from "@/app/admin/actions";
 
-const providers = ["", "youtube", "vimeo", "mux", "bunny", "cloudflare"];
+const providers = ["", "youtube", "google_drive", "vimeo", "mux", "bunny", "cloudflare"];
 
 function LessonFields({ lesson }) {
   return <>

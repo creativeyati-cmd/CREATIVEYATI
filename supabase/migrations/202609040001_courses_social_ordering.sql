@@ -68,7 +68,7 @@ create table if not exists public.course_lessons (
   slug text not null,
   lesson_type text not null default 'video' check (lesson_type in ('video','pdf','text','external','mixed')),
   body text not null default '',
-  video_provider text check (video_provider is null or video_provider in ('youtube','vimeo','mux','bunny','cloudflare')),
+  video_provider text check (video_provider is null or video_provider in ('youtube','google_drive','vimeo','mux','bunny','cloudflare')),
   video_asset_id text,
   video_url text,
   external_url text,
@@ -233,17 +233,19 @@ create unique index if not exists orders_one_pending_per_course_idx on public.or
 create index if not exists enrolments_student_idx on public.enrolments(student_id, active);
 create index if not exists lesson_progress_student_course_idx on public.lesson_progress(student_id, course_id);
 
-with ranked as (
-  select id, row_number() over(order by display_order, created_at, id) - 1 as position
-  from public.videos
-)
-update public.videos v set display_order = ranked.position
-from ranked where ranked.id = v.id;
-
 do $$
 begin
-  if not exists(select 1 from pg_constraint where conname = 'videos_display_order_unique') then
-    alter table public.videos add constraint videos_display_order_unique unique(display_order) deferrable initially deferred;
+  if to_regclass('public.videos') is not null then
+    with ranked as (
+      select id, row_number() over(order by display_order, created_at, id) - 1 as position
+      from public.videos
+    )
+    update public.videos v set display_order = ranked.position
+    from ranked where ranked.id = v.id;
+
+    if not exists(select 1 from pg_constraint where conname = 'videos_display_order_unique') then
+      alter table public.videos add constraint videos_display_order_unique unique(display_order) deferrable initially deferred;
+    end if;
   end if;
 end $$;
 
@@ -376,6 +378,30 @@ alter table public.download_logs enable row level security;
 alter table public.admin_audit_logs enable row level security;
 alter table public.payment_webhook_events enable row level security;
 
+drop policy if exists "public enabled social links" on public.social_links;
+drop policy if exists "public published courses" on public.courses;
+drop policy if exists "students read own profile" on public.student_profiles;
+drop policy if exists "students update own profile" on public.student_profiles;
+drop policy if exists "students read own orders" on public.orders;
+drop policy if exists "students read own payments" on public.payments;
+drop policy if exists "students read own enrolments" on public.enrolments;
+drop policy if exists "students manage own progress" on public.lesson_progress;
+drop policy if exists "admins manage social links" on public.social_links;
+drop policy if exists "admins manage courses" on public.courses;
+drop policy if exists "admins manage course sections" on public.course_sections;
+drop policy if exists "admins manage course lessons" on public.course_lessons;
+drop policy if exists "admins manage course resources" on public.course_resources;
+drop policy if exists "admins manage student profiles" on public.student_profiles;
+drop policy if exists "admins manage coupons" on public.coupons;
+drop policy if exists "admins manage orders" on public.orders;
+drop policy if exists "admins manage payments" on public.payments;
+drop policy if exists "admins manage enrolments" on public.enrolments;
+drop policy if exists "admins manage progress" on public.lesson_progress;
+drop policy if exists "admins read redemptions" on public.coupon_redemptions;
+drop policy if exists "admins read downloads" on public.download_logs;
+drop policy if exists "admins read audit logs" on public.admin_audit_logs;
+drop policy if exists "admins read payment events" on public.payment_webhook_events;
+
 create policy "public enabled social links" on public.social_links for select using (enabled = true);
 create policy "public published courses" on public.courses for select using (status = 'published' and deleted_at is null);
 create policy "students read own profile" on public.student_profiles for select using (id = auth.uid());
@@ -409,8 +435,16 @@ insert into storage.buckets(id, name, public, file_size_limit, allowed_mime_type
 values('course-resources', 'course-resources', false, 26214400, array['application/pdf'])
 on conflict(id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
+drop policy if exists "public profile images" on storage.objects;
 create policy "public profile images" on storage.objects for select using (bucket_id = 'profile-images');
 
-insert into public.site_settings(key, value)
-values('course', '{"homepageEnabled":false,"homepageHeading":"Learn the process","homepageCopy":"Practical lessons for creating intentional visual work.","homepageLimit":3}'::jsonb)
-on conflict(key) do nothing;
+do $$
+begin
+  if to_regclass('public.site_content') is not null then
+    execute $setting$
+      insert into public.site_content(key, value)
+      values('setting:course', '{"homepageEnabled":false,"homepageHeading":"Learn the process","homepageCopy":"Practical lessons for creating intentional visual work.","homepageLimit":3}'::jsonb)
+      on conflict(key) do nothing
+    $setting$;
+  end if;
+end $$;

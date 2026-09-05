@@ -1,7 +1,9 @@
 import { getYouTubeId, embedUrl } from "@/lib/youtube";
+import { getGoogleDriveId, googleDriveEmbedUrl } from "@/lib/video-source";
 
 function videoSource(lesson) {
   if (lesson.videoProvider === "youtube") { const id = lesson.videoAssetId || getYouTubeId(lesson.videoUrl); return id ? { kind: "iframe", src: embedUrl(id) } : null; }
+  if (lesson.videoProvider === "google_drive") { const id = lesson.videoAssetId || getGoogleDriveId(lesson.videoUrl); return id ? { kind: "iframe", src: googleDriveEmbedUrl(id) } : null; }
   if (lesson.videoProvider === "vimeo" && lesson.videoAssetId) return { kind: "iframe", src: `https://player.vimeo.com/video/${encodeURIComponent(lesson.videoAssetId)}` };
   if (lesson.videoProvider === "mux" && lesson.videoAssetId) return { kind: "video", src: `https://stream.mux.com/${encodeURIComponent(lesson.videoAssetId)}.m3u8` };
   if (lesson.videoUrl) return { kind: "video", src: lesson.videoUrl };

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient, createSupabaseServiceClient, getAdminUser } from "@/lib/supabase/server";
 import { contactSettingsSchema, emailSettingsSchema, seoSettingsSchema, videoSchema } from "@/lib/validation";
-import { embedUrl, getYouTubeId, thumbnailUrl } from "@/lib/youtube";
+import { getVideoSource } from "@/lib/video-source";
 import { getSiteContent } from "@/lib/data/site";
 import { clearDirectAdminSession, createDirectAdminSession, hasDirectAdminAuth, verifyDirectAdminCredentials } from "@/lib/admin-session";
 import { getStoredEmailSettings } from "@/lib/data/settings";
@@ -24,7 +24,8 @@ export async function saveVideo(formData) {
   if (!parsed.success) throw new Error(parsed.error.issues[0].message);
   const data = parsed.data;
   if (data.status === "published" && !data.coverImageUrl) throw new Error("Upload a custom 16:9 cover before publishing this project.");
-  const id = getYouTubeId(data.youtubeUrl);
+  const source = getVideoSource(data.videoUrl);
+  if (!source) throw new Error("Use a supported YouTube or Google Drive video URL.");
   const aspectRatio = data.orientation === "portrait" ? 9 / 16 : 16 / 9;
   const record = {
     title: data.title,
@@ -39,10 +40,15 @@ export async function saveVideo(formData) {
     tags: data.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
     credits: data.credits.split(/\r?\n/).map((line) => { const [role, ...name] = line.split(":"); return name.length ? { role: role.trim(), name: name.join(":").trim() } : line.trim(); }).filter(Boolean),
     external_project_url: data.externalProjectUrl || null,
-    youtube_url: data.youtubeUrl,
-    youtube_video_id: id,
-    youtube_embed_url: embedUrl(id),
-    youtube_thumbnail_url: thumbnailUrl(id),
+    video_provider: source.provider,
+    video_url: data.videoUrl,
+    video_asset_id: source.assetId,
+    video_embed_url: source.embedUrl,
+    video_thumbnail_url: source.thumbnailUrl || null,
+    youtube_url: source.provider === "youtube" ? data.videoUrl : null,
+    youtube_video_id: source.provider === "youtube" ? source.assetId : null,
+    youtube_embed_url: source.provider === "youtube" ? source.embedUrl : null,
+    youtube_thumbnail_url: source.provider === "youtube" ? source.thumbnailUrl : null,
     orientation: data.orientation,
     aspect_ratio: aspectRatio,
     cover_image_url: data.coverImageUrl || null,
@@ -74,7 +80,7 @@ export async function saveVideo(formData) {
     record.display_order = Number(last?.display_order ?? -1) + 1;
   }
   const result = videoId ? await supabase.from("videos").update(record).eq("id", videoId) : await supabase.from("videos").insert(record);
-  if (result.error) throw new Error("Video could not be saved. Confirm the project-cover migration has been applied.");
+  if (result.error) throw new Error("Video could not be saved. Confirm the latest database migrations have been applied.");
 
   const cleanup = storageKeys(data.cleanupStorageKeys);
   if (cleanup.length) {
@@ -157,7 +163,7 @@ export async function moveSocialLink(formData) {
 
 async function saveSetting(key, value) {
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("site_settings").upsert({ key, value, updated_at: new Date().toISOString() });
+  const { error } = await supabase.from("site_content").upsert({ key: `setting:${key}`, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
   if (error) throw new Error("Settings could not be saved.");
 }
 

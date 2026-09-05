@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import NextImage from "next/image";
 import ProjectMedia from "./ProjectMedia";
-import { getYouTubeId, thumbnailUrl } from "@/lib/youtube";
+import { getVideoSource } from "@/lib/video-source";
 
 const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const ACCEPTED_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "avif"]);
@@ -145,7 +145,7 @@ function SaveButton({ disabled }) {
 export default function VideoForm({ video, categories, action }) {
   const initialMain = { url: video?.cover_image_url || video?.custom_poster_url || "", key: video?.cover_image_storage_key || "", variants: objectValue(video?.cover_variants), width: 0, height: 0 };
   const initialMobile = { url: video?.mobile_cover_image_url || video?.mobile_poster_url || "", key: video?.mobile_cover_storage_key || "", variants: objectValue(video?.mobile_cover_variants), width: 0, height: 0 };
-  const [youtubeUrl, setYoutubeUrl] = useState(video?.youtube_url || "");
+  const [videoUrl, setVideoUrl] = useState(video?.video_url || video?.youtube_url || "");
   const [orientation, setOrientation] = useState(video?.orientation || "landscape");
   const [status, setStatus] = useState(video?.status || "draft");
   const coverFit = "cover";
@@ -159,16 +159,20 @@ export default function VideoForm({ video, categories, action }) {
   const generatedUploadId = useId().replace(/[^a-zA-Z0-9-]/g, "");
   const uploadId = video?.id || `project-${generatedUploadId}`;
   const focalRef = useRef(null);
-  const youtubeId = getYouTubeId(youtubeUrl);
-  const youtubeThumbnail = youtubeId ? thumbnailUrl(youtubeId) : "";
+  const videoSource = useMemo(() => getVideoSource(videoUrl), [videoUrl]);
 
   const scheduleCleanup = (keys) => setCleanupKeys((current) => [...new Set([...current, ...keys])]);
   const previewProject = useMemo(() => ({
     title: video?.title || "Project preview",
     orientation,
     aspectRatio: orientation === "portrait" ? 9 / 16 : 16 / 9,
-    youtubeVideoId: youtubeId || "",
-    youtubeThumbnailUrl: youtubeThumbnail,
+    videoProvider: videoSource?.provider || "",
+    videoUrl,
+    videoAssetId: videoSource?.assetId || "",
+    videoEmbedUrl: videoSource?.embedUrl || "",
+    videoThumbnailUrl: videoSource?.thumbnailUrl || "",
+    youtubeVideoId: videoSource?.provider === "youtube" ? videoSource.assetId : "",
+    youtubeThumbnailUrl: videoSource?.provider === "youtube" ? videoSource.thumbnailUrl : "",
     coverImageUrl: mainCover.url,
     mobileCoverImageUrl: mobileCover.url,
     coverVariants: mainCover.variants,
@@ -177,7 +181,7 @@ export default function VideoForm({ video, categories, action }) {
     coverFocalX: focalX,
     coverFocalY: focalY,
     coverAlt: coverAlt || "Project cover preview",
-  }), [video?.title, orientation, youtubeId, youtubeThumbnail, mainCover, mobileCover, coverFit, focalX, focalY, coverAlt]);
+  }), [video?.title, orientation, videoSource, videoUrl, mainCover, mobileCover, coverFit, focalX, focalY, coverAlt]);
 
   function updateFocal(event) {
     if (coverFit !== "cover") return;
@@ -189,7 +193,6 @@ export default function VideoForm({ video, categories, action }) {
 
   return <form className="admin-form video-admin-form" action={action}>
     <input type="hidden" name="id" value={video?.id || ""} />
-    <input type="hidden" name="youtubeVideoId" value={youtubeId || ""} />
     <input type="hidden" name="aspectRatio" value={orientation === "portrait" ? 9 / 16 : 16 / 9} />
     <input type="hidden" name="coverAspectRatio" value={16 / 9} />
     <input type="hidden" name="coverImageUrl" value={mainCover.url} />
@@ -201,7 +204,7 @@ export default function VideoForm({ video, categories, action }) {
     <input type="hidden" name="cleanupStorageKeys" value={JSON.stringify(cleanupKeys)} />
     <label>Title<input required name="title" defaultValue={video?.title} /></label>
     <label>Slug<input required name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" defaultValue={video?.slug} /></label>
-    <label className="form-wide">YouTube URL<input required name="youtubeUrl" type="url" value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://youtu.be/VIDEO_ID" />{youtubeUrl && <small className={youtubeId ? "field-success" : "form-error"}>{youtubeId ? `Video ID: ${youtubeId}` : "Enter a supported YouTube watch, short, embed or youtu.be link."}</small>}{youtubeThumbnail && <span className="youtube-thumbnail-preview"><span>Generated YouTube thumbnail</span><NextImage src={youtubeThumbnail} width={480} height={270} sizes="320px" alt="Generated YouTube project thumbnail" /></span>}</label>
+    <label className="form-wide">Video URL<input required name="videoUrl" type="url" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="YouTube or public Google Drive link" />{videoUrl && <small className={videoSource ? "field-success" : "form-error"}>{videoSource ? `${videoSource.provider === "youtube" ? "YouTube" : "Google Drive"} video detected.` : "Enter a supported YouTube or Google Drive video link."}</small>}{videoSource?.provider === "youtube" && <span className="youtube-thumbnail-preview"><span>Generated YouTube thumbnail</span><NextImage src={videoSource.thumbnailUrl} width={480} height={270} sizes="320px" alt="Generated YouTube project thumbnail" /></span>}{videoSource?.provider === "google_drive" && <small>Set the Drive file access to “Anyone with the link” so visitors can play it.</small>}</label>
     <label>Orientation<select name="orientation" value={orientation} onChange={(event) => setOrientation(event.target.value)}><option value="landscape">Landscape — 16:9</option><option value="portrait">Portrait — 9:16</option></select></label>
     <label>Status<select name="status" value={status} onChange={(event) => setStatus(event.target.value)}><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
     <label>Category<select name="categoryId" defaultValue={video?.category_id || ""}><option value="">Uncategorised</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
@@ -232,6 +235,6 @@ export default function VideoForm({ video, categories, action }) {
       <div ref={focalRef} className="admin-focal-preview" onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); updateFocal(event); }} onPointerMove={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) updateFocal(event); }} onPointerUp={(event) => event.currentTarget.releasePointerCapture(event.pointerId)}><ProjectMedia project={previewProject} context="focus-player" /><span className="focal-marker" style={{ left: `${focalX}%`, top: `${focalY}%` }} /><p>Drag to reposition the focal point</p></div>
     </section>
     {status === "published" && !mainCover.url && <p className="form-wide form-error">Upload a custom 16:9 cover before publishing this project.</p>}
-    <SaveButton disabled={!youtubeId || mainUploadBusy || (status === "published" && !mainCover.url)} />
+    <SaveButton disabled={!videoSource || mainUploadBusy || (status === "published" && !mainCover.url)} />
   </form>;
 }
