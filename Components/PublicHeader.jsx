@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { AdminIcon, ChevronDownIcon, SocialIcon } from "./Icons";
+import ProfileAvatar from "./ProfileAvatar";
 
 const routes = [
   { href: "/", label: "Home", icon: "home" },
@@ -83,11 +83,7 @@ export default function PublicHeader({ site, current = "/" }) {
     <header className="site-header" ref={root}>
       <div className="identity-wrap">
         <Link href="/" className="identity">
-          {site.profileImage ? (
-            <Image className="profile-image" src={site.profileImage} width={46} height={46} sizes="(max-width: 767px) 40px, 46px" style={{ objectPosition: profilePosition }} alt={`${site.creatorName} profile`} priority />
-          ) : (
-            <span className="identity-mark">{initials}</span>
-          )}
+          <ProfileAvatar className="profile-image" src={site.profileImage} width={40} height={40} sizes="(max-width: 767px) 32px, 40px" style={{ objectPosition: profilePosition }} alt={`${site.creatorName} profile`} initials={initials} priority />
           <span>{site.creatorName}</span>
         </Link>
         <button

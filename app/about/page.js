@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import ProfileAvatar from "@/Components/ProfileAvatar";
 import PublicHeader from "@/Components/PublicHeader";
 import PublicTextReveal from "@/Components/PublicTextReveal";
 import PublicFooter from "@/Components/PublicFooter";
@@ -16,7 +16,7 @@ export default async function AboutPage() {
   return <main className="about-page public-page">
     <PublicHeader site={site} current="/about" />
     <PublicTextReveal as="article" className="about-note public-note">
-      <div className="about-identity">{site.profileImage ? <Image className="about-avatar" src={site.profileImage} width={52} height={52} sizes="52px" style={{ objectPosition: focal }} alt={`${site.creatorName} profile`} /> : <span className="about-avatar identity-mark">{initials}</span>}<div><h1 data-reveal>{site.creatorName}</h1><p data-reveal>{site.professionalTitle}</p>{site.availability && <small data-reveal>{site.availability}</small>}</div></div>
+      <div className="about-identity"><ProfileAvatar className="about-avatar" src={site.profileImage} width={52} height={52} sizes="52px" style={{ objectPosition: focal }} alt={`${site.creatorName} profile`} initials={initials} /><div><h1 data-reveal>{site.creatorName}</h1><p data-reveal>{site.professionalTitle}</p>{site.availability && <small data-reveal>{site.availability}</small>}</div></div>
       <div className="about-copy"><p data-reveal>{site.aboutCurrentWork}</p><p data-reveal>{site.aboutApproach}</p><p data-reveal>{site.aboutExperience}</p><p data-reveal>{site.aboutPhilosophy}</p></div>
       <p className="about-links" data-reveal>Available for commercial films, branded content, social campaigns and creative collaborations. <Link href="/work">View selected work</Link> or <Link href="/contact">start a project enquiry</Link>.</p>
       <SocialLinks links={socialLinks} />
