@@ -10,6 +10,7 @@ const routes = [
   { href: "/work", label: "Work", icon: "video" },
   { href: "/about", label: "About", icon: "user" },
   { href: "/services", label: "Services", icon: "settings" },
+  { href: "/courses", label: "Courses", icon: "book" },
   { href: "/contact", label: "Contact", icon: "mail" },
 ];
 
