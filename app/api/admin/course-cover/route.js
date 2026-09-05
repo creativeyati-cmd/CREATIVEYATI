@@ -48,11 +48,14 @@ export async function POST(request) {
     return jsonError("The selected image is corrupted or could not be decoded.");
   }
   if (!metadata.width || !metadata.height || !MIME_FORMATS[file.type].has(metadata.format)) return jsonError("The image contents do not match its file type.");
-  if (metadata.width < 640 || metadata.height < 360) return jsonError("Course covers must be at least 640 × 360px.");
+  if (metadata.width < 1280 || metadata.height < 720) return jsonError("Course covers must be at least 1280 x 720px.");
 
   const key = `courses/${courseId}/cover-${randomUUID()}.webp`;
+  let processedWidth = 0;
+  let processedHeight = 0;
   try {
     const output = await source.resize(1600, 900, { fit: "cover", position: "attention", withoutEnlargement: true }).webp({ quality: 84 }).toBuffer();
+    const processed = await sharp(output).metadata(); processedWidth = processed.width || 0; processedHeight = processed.height || 0;
     const { error } = await service.storage.from(BUCKET).upload(key, output, { contentType: "image/webp", cacheControl: "31536000", upsert: false });
     if (error) throw error;
   } catch {
@@ -60,5 +63,5 @@ export async function POST(request) {
   }
 
   const url = service.storage.from(BUCKET).getPublicUrl(key).data.publicUrl;
-  return Response.json({ url, storageKey: key, width: metadata.width, height: metadata.height });
+  return Response.json({ url, storageKey: key, width: processedWidth, height: processedHeight });
 }

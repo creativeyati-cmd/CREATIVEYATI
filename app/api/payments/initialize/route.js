@@ -7,8 +7,8 @@ export async function POST(request) {
   if (!user) return Response.json({ error: "Sign in before checking out." }, { status: 401 });
   if (!service) return Response.json({ error: "Course payments are not configured." }, { status: 503 });
   const body = await request.json().catch(() => ({})); const courseId = String(body.courseId || ""); const couponCode = String(body.couponCode || "").trim().toUpperCase();
-  const { data: course } = await service.from("courses").select("*").eq("id", courseId).eq("status", "published").is("deleted_at", null).maybeSingle();
-  if (!course) return Response.json({ error: "This course is not available." }, { status: 404 });
+  const { data: course } = await service.from("courses").select("*").eq("id", courseId).in("status", ["published", "scheduled"]).is("deleted_at", null).maybeSingle();
+  if (!course || (course.status === "scheduled" && (!course.scheduled_for || new Date(course.scheduled_for).getTime() > Date.now()))) return Response.json({ error: "This course is not available." }, { status: 404 });
   const { data: existing } = await service.from("enrolments").select("id").eq("student_id", user.id).eq("course_id", course.id).eq("active", true).maybeSingle();
   if (existing) return Response.json({ redirectUrl: `/learn/${course.slug}` });
   const pendingSince = Date.now() - 15 * 60 * 1000;
@@ -19,8 +19,8 @@ export async function POST(request) {
     if (!checkoutUrl && new Date(pendingOrder.created_at).getTime() > pendingSince) return Response.json({ error: "A checkout is already being prepared. Try again in a moment." }, { status: 409 });
     await service.from("orders").update({ payment_status: "abandoned", updated_at: new Date().toISOString() }).eq("id", pendingOrder.id).eq("payment_status", "pending");
   }
-  const original = course.is_free ? 0 : Number(course.price_minor);
-  const salePrice = course.is_free ? 0 : Number(course.discounted_price_minor ?? course.price_minor);
+  const original = course.is_free ? 0 : Number(course.price_minor); const currentTime = Date.now(); const saleActive = course.discounted_price_minor != null && (!course.sale_starts_at || new Date(course.sale_starts_at).getTime() <= currentTime) && (!course.sale_ends_at || new Date(course.sale_ends_at).getTime() >= currentTime);
+  const salePrice = course.is_free ? 0 : Number(saleActive ? course.discounted_price_minor : course.price_minor);
   let discount = 0; let coupon = null;
   if (couponCode) {
     const { data } = await service.from("coupons").select("*").eq("code", couponCode).eq("enabled", true).maybeSingle(); const now = Date.now();

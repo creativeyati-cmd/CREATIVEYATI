@@ -1,4 +1,5 @@
 "use server";
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient, createSupabaseServiceClient, getAdminUser } from "@/lib/supabase/server";
@@ -10,6 +11,9 @@ import { getStoredBachsSettings, getStoredEmailSettings } from "@/lib/data/setti
 import { canEncryptSecrets, canEncryptSmtp, encryptSecretSettings, encryptSmtpSettings } from "@/lib/email/crypto";
 import { sendCourseConfirmation, sendEnquiryNotification, sendSettingsTestEmail } from "@/lib/email/delivery";
 import { recordRefund, requestRefund, testBachsConnection } from "@/lib/payments/provider";
+import { getCourseVideoSource } from "@/lib/course-video-source";
+import { checkExternalCourseVideo } from "@/lib/course-video-validation";
+import { getCoursePublishIssues } from "@/lib/data/course-publishing";
 
 async function admin() { const user = await getAdminUser(); if (!user) throw new Error("Unauthorised"); return user; }
 export async function login(formData) { const email = String(formData.get("email") || ""); const password = String(formData.get("password") || ""); if (hasDirectAdminAuth()) { if (!verifyDirectAdminCredentials(email, password)) redirect("/admin/login?error=Invalid+email+or+password"); await createDirectAdminSession(email); redirect("/admin"); } const supabase = await createSupabaseServerClient(); if (!supabase) return redirect("/admin/login?error=Admin+sign-in+is+not+configured"); const { error } = await supabase.auth.signInWithPassword({ email, password }); if (error) redirect("/admin/login?error=Invalid+email+or+password"); redirect("/admin"); }
@@ -252,25 +256,26 @@ function validSlug(value) { return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value); }
 
 export async function saveCourse(formData) {
   await admin(); const supabase = await createSupabaseServerClient();
-  const id = String(formData.get("id") || ""); const title = String(formData.get("title") || "").trim(); const slug = String(formData.get("slug") || "").trim();
-  const price = moneyToMinor(formData.get("price")); const discounted = String(formData.get("discountedPrice") || "").trim(); const discountedPrice = discounted ? moneyToMinor(discounted) : null; const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
-  if (!title || !validSlug(slug) || !/^https?:\/\//i.test(coverImageUrl) || price === null || (discounted && (discountedPrice === null || discountedPrice > price))) redirect(`/admin/courses/${id || "new"}?error=${encodeURIComponent("Enter a title, lowercase slug, valid cover URL and valid prices.")}`);
-  const record = {
-    title, slug, short_description: String(formData.get("shortDescription") || "").trim(), description: String(formData.get("description") || "").trim(),
-    cover_image_url: coverImageUrl, instructor: String(formData.get("instructor") || "").trim(), category: String(formData.get("category") || "").trim(),
-    difficulty: String(formData.get("difficulty") || "All levels"), language: String(formData.get("language") || "English").trim(), estimated_duration: String(formData.get("estimatedDuration") || "").trim(),
-    price_minor: price, discounted_price_minor: discountedPrice, currency: String(formData.get("currency") || "NGN").trim().toUpperCase(), is_free: formData.get("isFree") === "on",
-    status: String(formData.get("status") || "draft"), featured: formData.get("featured") === "on", learning_outcomes: lineList(formData.get("learningOutcomes")), requirements: lineList(formData.get("requirements")), target_audience: lineList(formData.get("targetAudience")),
-    seo_title: String(formData.get("seoTitle") || "").trim() || null, seo_description: String(formData.get("seoDescription") || "").trim() || null, og_image_url: String(formData.get("ogImageUrl") || "").trim() || null, updated_at: new Date().toISOString(),
-  };
+  const id = String(formData.get("id") || ""); const step = String(formData.get("step") || "details"); let record = { updated_at: new Date().toISOString() }; let slug = ""; let coverImageUrl = "";
+  if (step === "details") {
+    const title = String(formData.get("title") || "").trim(); slug = String(formData.get("slug") || "").trim(); coverImageUrl = String(formData.get("coverImageUrl") || "").trim(); const promoUrl = String(formData.get("promotionalVideoUrl") || "").trim(); const promoSource = promoUrl ? getCourseVideoSource(promoUrl) : null;
+    if (!title || !validSlug(slug) || !/^https?:\/\//i.test(coverImageUrl)) redirect(`/admin/courses/${id || "new"}${id ? "/edit?step=details&" : "?"}error=${encodeURIComponent("Enter a title, lowercase slug and upload a valid 16:9 cover.")}`);
+    if (promoUrl && !promoSource) redirect(`/admin/courses/${id || "new"}${id ? "/edit?step=details&" : "?"}error=${encodeURIComponent("Use a valid YouTube, Vimeo or Google Drive promotional video link.")}`);
+    const promoOrientation = String(formData.get("promotionalOrientation")) === "portrait" ? "portrait" : "landscape";
+    record = { ...record, title, slug, short_description: String(formData.get("shortDescription") || "").trim(), description: String(formData.get("description") || "").trim(), cover_image_url: coverImageUrl, cover_focal_x: Math.min(100, Math.max(0, Number(formData.get("coverFocalX")) || 50)), cover_focal_y: Math.min(100, Math.max(0, Number(formData.get("coverFocalY")) || 50)), cover_width: Number(formData.get("coverWidth")) || null, cover_height: Number(formData.get("coverHeight")) || null, instructor: String(formData.get("instructor") || "").trim(), category: String(formData.get("category") || "").trim(), difficulty: String(formData.get("difficulty") || "All levels"), language: String(formData.get("language") || "English").trim(), estimated_duration: String(formData.get("estimatedDuration") || "").trim(), promotional_video_source: promoSource?.sourceType || null, promotional_video_url: promoSource?.sourceUrl || null, promotional_video_id: promoSource?.sourceId || null, promotional_embed_url: promoSource?.embedUrl || null, promotional_orientation: promoOrientation, promotional_aspect_ratio: promoOrientation === "portrait" ? 9 / 16 : 16 / 9, learning_outcomes: lineList(formData.get("learningOutcomes")), requirements: lineList(formData.get("requirements")), target_audience: lineList(formData.get("targetAudience")), seo_title: String(formData.get("seoTitle") || "").trim() || null, seo_description: String(formData.get("seoDescription") || "").trim() || null, og_image_url: String(formData.get("ogImageUrl") || "").trim() || null };
+  } else if (step === "pricing") {
+    if (!id) redirect("/admin/courses/new?error=Save+course+details+first"); const price = moneyToMinor(formData.get("price")); const discounted = String(formData.get("discountedPrice") || "").trim(); const discountedPrice = discounted ? moneyToMinor(discounted) : null; const isFree = formData.get("isFree") === "on"; const currency = String(formData.get("currency") || "NGN").trim().toUpperCase(); const saleStartsAt = String(formData.get("saleStartsAt") || ""); const saleEndsAt = String(formData.get("saleEndsAt") || "");
+    if (price === null || !/^[A-Z]{3}$/.test(currency) || (discounted && (discountedPrice === null || discountedPrice > price)) || (saleStartsAt && saleEndsAt && new Date(saleEndsAt) <= new Date(saleStartsAt))) redirect(`/admin/courses/${id}/edit?step=pricing&error=${encodeURIComponent("Enter valid prices, currency and sale dates.")}`);
+    record = { ...record, price_minor: isFree ? 0 : price, discounted_price_minor: isFree ? null : discountedPrice, currency, is_free: isFree, sale_starts_at: saleStartsAt || null, sale_ends_at: saleEndsAt || null, payment_gateway: "bachs", featured: formData.get("featured") === "on" };
+  } else redirect(`/admin/courses/${id}/edit?error=${encodeURIComponent("Unknown course editor step.")}`);
   let result;
   if (id) result = await supabase.from("courses").update(record).eq("id", id).select("id").single();
-  else { const { data: last } = await supabase.from("courses").select("display_order").order("display_order", { ascending: false }).limit(1).maybeSingle(); result = await supabase.from("courses").insert({ ...record, display_order: Number(last?.display_order ?? -1) + 1 }).select("id").single(); }
-  if (result.error) redirect(`/admin/courses/${id || "new"}?error=${encodeURIComponent("The course could not be saved. Check that its slug is unique.")}`);
+  else { const { data: last } = await supabase.from("courses").select("display_order").order("display_order", { ascending: false }).limit(1).maybeSingle(); result = await supabase.from("courses").insert({ ...record, status: "draft", price_minor: 0, currency: "NGN", is_free: true, display_order: Number(last?.display_order ?? -1) + 1 }).select("id").single(); }
+  if (result.error) redirect(id ? `/admin/courses/${id}/edit?step=${step}&error=${encodeURIComponent("The course could not be saved. Check that its slug is unique and the workflow migration is applied.")}` : `/admin/courses/new?error=${encodeURIComponent("The course could not be saved. Check that its slug is unique and the workflow migration is applied.")}`);
   const keepCoverKey = courseCoverStorageKey(coverImageUrl);
   const cleanupCoverKeys = storageKeys(formData.get("courseCoverCleanupKeys")).filter((key) => key.startsWith("courses/") && key !== keepCoverKey);
   if (cleanupCoverKeys.length) await createSupabaseServiceClient()?.storage.from("project-covers").remove(cleanupCoverKeys);
-  revalidatePath("/"); revalidatePath("/courses"); revalidatePath(`/courses/${slug}`); revalidatePath("/admin/courses"); redirect(`/admin/courses/${result.data.id}/edit?saved=1`);
+  revalidatePath("/"); revalidatePath("/courses"); if (slug) revalidatePath(`/courses/${slug}`); revalidatePath("/admin/courses"); redirect(`/admin/courses/${result.data.id}/edit?step=${step === "details" ? "pricing" : "pricing"}&saved=1`);
 }
 
 export async function saveCourseSection(formData) {
@@ -282,26 +287,73 @@ export async function saveCourseSection(formData) {
 }
 
 export async function saveCourseLesson(formData) {
-  await admin(); const supabase = await createSupabaseServerClient(); const courseId = String(formData.get("courseId") || ""); const sectionId = String(formData.get("sectionId") || ""); const lessonId = String(formData.get("id") || ""); const title = String(formData.get("title") || "").trim(); const slug = String(formData.get("slug") || "").trim(); const destination = `/admin/courses/${courseId}/curriculum`; if (!title || !validSlug(slug)) redirect(`${destination}?error=${encodeURIComponent("Lesson title and lowercase slug are required.")}`);
-  const lessonType = String(formData.get("lessonType") || "video");
-  const videoUrl = String(formData.get("videoUrl") || "").trim();
-  const externalUrl = String(formData.get("externalUrl") || "").trim();
-  if ((videoUrl && !/^https?:\/\//i.test(videoUrl)) || (externalUrl && !/^https?:\/\//i.test(externalUrl))) redirect(`${destination}?error=${encodeURIComponent("Use complete https:// links for lesson media and resources.")}`);
-  const source = videoUrl ? getVideoSource(videoUrl) : null;
-  let videoProvider = String(formData.get("videoProvider") || "").trim();
-  let videoAssetId = String(formData.get("videoAssetId") || "").trim();
-  if (source) { videoProvider = source.provider; videoAssetId = source.assetId; }
-  if (lessonType === "video" && !videoUrl && !videoAssetId) redirect(`${destination}?error=${encodeURIComponent("Add a YouTube, Google Drive, or protected-provider video link.")}`);
-  if (videoUrl && ["youtube", "google_drive"].includes(videoProvider) && !source) redirect(`${destination}?error=${encodeURIComponent("That YouTube or Google Drive link could not be recognised.")}`);
-  const lessonRecord = { section_id: sectionId, title, slug, lesson_type: lessonType, body: String(formData.get("body") || ""), video_provider: videoProvider || null, video_asset_id: videoAssetId || null, video_url: videoUrl || null, external_url: externalUrl || null, duration_seconds: Math.max(0, Number(formData.get("durationSeconds")) || 0), is_preview: formData.get("isPreview") === "on", updated_at: new Date().toISOString() };
-  if (lessonId) { const { error } = await supabase.from("course_lessons").update(lessonRecord).eq("id", lessonId); if (error) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be updated. Check that its slug is unique in this section.")}`); revalidatePath(destination); redirect(`${destination}?saved=lesson`); }
-  const { data: last } = await supabase.from("course_lessons").select("display_order").eq("section_id", sectionId).order("display_order", { ascending: false }).limit(1).maybeSingle();
-  const { error } = await supabase.from("course_lessons").insert({ ...lessonRecord, display_order: Number(last?.display_order ?? -1) + 1 });
-  if (error) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be added. Check that its slug is unique in this section.")}`); revalidatePath(destination); redirect(`${destination}?saved=lesson`);
+  await admin(); const service = createSupabaseServiceClient(); const courseId = String(formData.get("courseId") || ""); const sectionId = String(formData.get("sectionId") || ""); const targetSectionId = String(formData.get("targetSectionId") || sectionId); const lessonId = String(formData.get("id") || ""); const title = String(formData.get("title") || "").trim(); const slug = String(formData.get("slug") || "").trim(); const destination = `/admin/courses/${courseId}/curriculum`; if (!title || !validSlug(slug)) redirect(`${destination}?error=${encodeURIComponent("Lesson title and lowercase slug are required.")}`);
+  const { data: targetSection } = await service.from("course_sections").select("id").eq("id", targetSectionId).eq("course_id", courseId).maybeSingle();
+  if (!targetSection) redirect(`${destination}?error=${encodeURIComponent("Choose a section that belongs to this course.")}`);
+  const lessonType = String(formData.get("lessonType") || "video"); const hasVideo = ["video", "mixed"].includes(lessonType); const sourceType = hasVideo ? String(formData.get("sourceType") || "") : ""; const sourceUrl = String(formData.get("sourceUrl") || "").trim(); const storageKey = String(formData.get("storageKey") || ""); const externalUrl = String(formData.get("externalUrl") || "").trim(); const status = String(formData.get("lessonStatus") || "draft");
+  if (externalUrl && !/^https:\/\//i.test(externalUrl)) redirect(`${destination}?error=${encodeURIComponent("Use a complete https:// link for the external resource.")}`);
+  let parsedSource = null;
+  if (hasVideo && sourceType !== "upload") {
+    parsedSource = getCourseVideoSource(sourceUrl, sourceType);
+    if (sourceUrl && !parsedSource) redirect(`${destination}?error=${encodeURIComponent("The selected provider does not match that video link.")}`);
+    if (status === "published") { const checked = await checkExternalCourseVideo(parsedSource); if (!checked.ok) redirect(`${destination}?error=${encodeURIComponent(checked.error)}`); }
+  }
+  if (hasVideo && sourceType === "upload") {
+    const { data: asset } = await service.from("media_assets").select("storage_key,processing_status").eq("course_id", courseId).eq("storage_key", storageKey).maybeSingle();
+    if (status === "published" && (!asset || asset.processing_status !== "ready")) redirect(`${destination}?error=${encodeURIComponent("Upload and verify the lesson video before publishing it.")}`);
+  }
+  if (status === "published" && hasVideo && !sourceType) redirect(`${destination}?error=${encodeURIComponent("Choose and verify a video source before publishing this lesson.")}`);
+  const orientation = String(formData.get("orientation")) === "portrait" ? "portrait" : "landscape"; const duration = Math.max(0, Number(formData.get("durationSeconds")) || 0); const sourceId = parsedSource?.sourceId || String(formData.get("sourceId") || "") || null; const embedUrl = parsedSource?.embedUrl || String(formData.get("embedUrl") || "") || null;
+  const lessonRecord = { course_id: courseId, section_id: targetSectionId, title, slug, lesson_type: lessonType, description: String(formData.get("description") || "").trim(), body: String(formData.get("body") || ""), source_type: sourceType || null, source_url: parsedSource?.sourceUrl || null, source_id: sourceId, storage_key: sourceType === "upload" ? storageKey || null : null, embed_url: embedUrl, video_provider: sourceType || null, video_asset_id: sourceId, video_url: parsedSource?.sourceUrl || null, external_url: externalUrl || null, duration_seconds: duration, orientation, aspect_ratio: Number(formData.get("aspectRatio")) || (orientation === "portrait" ? 9 / 16 : 16 / 9), width: Number(formData.get("videoWidth")) || null, height: Number(formData.get("videoHeight")) || null, poster_url: String(formData.get("posterUrl") || "") || null, poster_storage_key: String(formData.get("posterStorageKey") || "") || null, captions_url: String(formData.get("captionsUrl") || "") || null, transcript: String(formData.get("transcript") || ""), privacy: String(formData.get("privacy") || "unlisted"), allow_download: formData.get("allowDownload") === "on", status, processing_status: hasVideo ? String(formData.get("processingStatus") || (parsedSource ? "ready" : "pending")) : "ready", processing_error: null, is_preview: status === "published" && formData.get("isPreview") === "on", updated_at: new Date().toISOString() };
+  if (lessonId && formData.get("newLesson") !== "1" && targetSectionId !== sectionId) { const { data: lastTargetLesson } = await service.from("course_lessons").select("display_order").eq("section_id", targetSectionId).order("display_order", { ascending: false }).limit(1).maybeSingle(); lessonRecord.display_order = Number(lastTargetLesson?.display_order ?? -1) + 1; }
+  let savedId = lessonId;
+  if (lessonId && formData.get("newLesson") !== "1") { const { error } = await service.from("course_lessons").update(lessonRecord).eq("id", lessonId).eq("course_id", courseId); if (error) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be updated. Check its source and unique slug.")}`); }
+  else { const { data: last } = await service.from("course_lessons").select("display_order").eq("section_id", targetSectionId).order("display_order", { ascending: false }).limit(1).maybeSingle(); const { data, error } = await service.from("course_lessons").insert({ ...lessonRecord, id: String(formData.get("id") || undefined) || undefined, display_order: Number(last?.display_order ?? -1) + 1 }).select("id").single(); if (error) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be added. Check its source and unique slug.")}`); savedId = data.id; }
+  if (storageKey) await service.from("media_assets").update({ lesson_id: savedId, updated_at: new Date().toISOString() }).eq("course_id", courseId).eq("storage_key", storageKey);
+  if (lessonRecord.poster_storage_key) await service.from("media_assets").update({ lesson_id: savedId, updated_at: new Date().toISOString() }).eq("course_id", courseId).eq("storage_key", lessonRecord.poster_storage_key);
+  const obsolete = String(formData.get("obsoleteStorageKey") || ""); if (obsolete && obsolete !== storageKey && obsolete.startsWith(`${courseId}/`)) { await service.storage.from("course-videos").remove([obsolete]); await service.from("media_assets").delete().eq("storage_key", obsolete); }
+  const obsoletePoster = String(formData.get("obsoletePosterStorageKey") || ""); if (obsoletePoster && obsoletePoster !== lessonRecord.poster_storage_key && obsoletePoster.startsWith(`${courseId}/`)) { await service.storage.from("course-posters").remove([obsoletePoster]); await service.from("media_assets").delete().eq("storage_key", obsoletePoster); }
+  revalidatePath(destination); revalidatePath(`/courses`, "layout"); redirect(`${destination}?saved=lesson`);
 }
 
 export async function deleteCourseSection(formData) { await admin(); const supabase = await createSupabaseServerClient(); const courseId = String(formData.get("courseId") || ""); const destination = `/admin/courses/${courseId}/curriculum`; const { error } = await supabase.from("course_sections").delete().eq("id", String(formData.get("id") || "")); if (error) redirect(`${destination}?error=${encodeURIComponent("The section could not be deleted.")}`); revalidatePath(destination); redirect(`${destination}?saved=deleted`); }
-export async function deleteCourseLesson(formData) { await admin(); const supabase = await createSupabaseServerClient(); const courseId = String(formData.get("courseId") || ""); const destination = `/admin/courses/${courseId}/curriculum`; const { error } = await supabase.from("course_lessons").delete().eq("id", String(formData.get("id") || "")); if (error) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be deleted.")}`); revalidatePath(destination); redirect(`${destination}?saved=deleted`); }
+export async function deleteCourseLesson(formData) { await admin(); const service = createSupabaseServiceClient(); const courseId = String(formData.get("courseId") || ""); const lessonId = String(formData.get("id") || ""); const destination = `/admin/courses/${courseId}/curriculum`; const [{ data: media = [] }, { data: resources = [] }] = await Promise.all([service.from("media_assets").select("bucket,storage_key").eq("lesson_id", lessonId).eq("course_id", courseId), service.from("course_resources").select("storage_key").eq("lesson_id", lessonId).eq("course_id", courseId)]); const { error } = await service.from("course_lessons").delete().eq("id", lessonId).eq("course_id", courseId); if (error) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be deleted.")}`); await Promise.all([...media.map((asset) => service.storage.from(asset.bucket).remove([asset.storage_key])), ...resources.map((item) => service.storage.from("course-resources").remove([item.storage_key]))]); revalidatePath(destination); redirect(`${destination}?saved=deleted`); }
+
+export async function duplicateCourseLesson(formData) {
+  await admin(); const service = createSupabaseServiceClient(); const courseId = String(formData.get("courseId") || ""); const id = String(formData.get("id") || ""); const destination = `/admin/courses/${courseId}/curriculum`;
+  const { data: lesson } = await service.from("course_lessons").select("*").eq("id", id).eq("course_id", courseId).maybeSingle(); if (!lesson) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be found.")}`);
+  const { data: last } = await service.from("course_lessons").select("display_order").eq("section_id", lesson.section_id).order("display_order", { ascending: false }).limit(1).maybeSingle();
+  const { id: ignored, created_at: created, updated_at: updated, ...copy } = lesson; void ignored; void created; void updated;
+  copy.title = `${lesson.title} copy`; copy.slug = `${lesson.slug}-copy-${Date.now().toString(36)}`; copy.display_order = Number(last?.display_order ?? -1) + 1; copy.status = "draft"; copy.is_preview = false;
+  if (copy.source_type === "upload") { copy.source_type = null; copy.storage_key = null; copy.processing_status = "pending"; copy.video_provider = null; copy.video_asset_id = null; }
+  const { data: duplicated, error } = await service.from("course_lessons").insert(copy).select("id").single(); if (error) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be duplicated.")}`);
+  const { data: resources = [] } = await service.from("course_resources").select("*").eq("lesson_id", id).order("display_order"); for (const resource of resources || []) { const nextKey = `${courseId}/${duplicated.id}/${randomUUID()}.pdf`; const { error: copyError } = await service.storage.from("course-resources").copy(resource.storage_key, nextKey); if (!copyError) { const { id: resourceId, lesson_id: owner, created_at: resourceCreated, updated_at: resourceUpdated, ...resourceCopy } = resource; void resourceId; void owner; void resourceCreated; void resourceUpdated; await service.from("course_resources").insert({ ...resourceCopy, lesson_id: duplicated.id, course_id: courseId, storage_key: nextKey }); } }
+  revalidatePath(destination); redirect(`${destination}?saved=duplicated`);
+}
+
+export async function updateCoursePublication(formData) {
+  await admin(); const service = createSupabaseServiceClient(); const courseId = String(formData.get("courseId") || ""); const intent = String(formData.get("intent") || "publish"); const destination = `/admin/courses/${courseId}/edit?step=publish`;
+  if (["publish", "schedule"].includes(intent)) { const issues = await getCoursePublishIssues(courseId); if (issues.length) redirect(`${destination}&error=${encodeURIComponent(issues[0])}`); }
+  const now = new Date().toISOString(); let record;
+  if (intent === "publish") record = { status: "published", published_at: now, scheduled_for: null };
+  else if (intent === "schedule") { const scheduledFor = String(formData.get("scheduledFor") || ""); if (!scheduledFor || new Date(scheduledFor).getTime() <= Date.now()) redirect(`${destination}&error=${encodeURIComponent("Choose a future publishing date and time.")}`); record = { status: "scheduled", scheduled_for: new Date(scheduledFor).toISOString() }; }
+  else if (intent === "unpublish") record = { status: "unpublished", scheduled_for: null };
+  else if (intent === "archive") record = { status: "archived", scheduled_for: null };
+  else redirect(`${destination}&error=${encodeURIComponent("Unknown publishing action.")}`);
+  const { error } = await service.from("courses").update({ ...record, updated_at: now }).eq("id", courseId).is("deleted_at", null); if (error) redirect(`${destination}&error=${encodeURIComponent("The publishing state could not be changed.")}`); revalidatePath("/"); revalidatePath("/courses"); revalidatePath(`/admin/courses/${courseId}/edit`); redirect(`${destination}&saved=${intent}`);
+}
+
+export async function duplicateCourse(formData) {
+  await admin(); const service = createSupabaseServiceClient(); const id = String(formData.get("courseId") || ""); const { data: original } = await service.from("courses").select("*").eq("id", id).is("deleted_at", null).maybeSingle(); if (!original) redirect("/admin/courses?error=Course+not+found");
+  const { id: ignored, created_at: created, updated_at: updated, published_at: published, scheduled_for: scheduled, ...copy } = original; void ignored; void created; void updated; void published; void scheduled; copy.title = `${original.title} copy`; copy.slug = `${original.slug}-copy-${Date.now().toString(36)}`; copy.status = "draft"; copy.featured = false; copy.duplicated_from = id; const { data: createdCourse, error } = await service.from("courses").insert(copy).select("id").single(); if (error) redirect("/admin/courses?error=Course+could+not+be+duplicated");
+  const { data: sections = [] } = await service.from("course_sections").select("*").eq("course_id", id).order("display_order");
+  for (const section of sections) { const { id: sectionId, course_id: oldCourse, created_at: sectionCreated, updated_at: sectionUpdated, ...sectionCopy } = section; void oldCourse; void sectionCreated; void sectionUpdated; const { data: newSection } = await service.from("course_sections").insert({ ...sectionCopy, course_id: createdCourse.id }).select("id").single(); const { data: lessons = [] } = await service.from("course_lessons").select("*").eq("section_id", sectionId).order("display_order"); for (const lesson of lessons) { const { id: lessonId, section_id: oldSection, course_id: oldLessonCourse, created_at: lessonCreated, updated_at: lessonUpdated, ...lessonCopy } = lesson; void lessonId; void oldSection; void oldLessonCourse; void lessonCreated; void lessonUpdated; lessonCopy.status = "draft"; lessonCopy.is_preview = false; if (lessonCopy.source_type === "upload") { lessonCopy.source_type = null; lessonCopy.storage_key = null; lessonCopy.processing_status = "pending"; } await service.from("course_lessons").insert({ ...lessonCopy, section_id: newSection.id, course_id: createdCourse.id }); } }
+  revalidatePath("/admin/courses"); redirect(`/admin/courses/${createdCourse.id}/edit?saved=duplicated`);
+}
+
+export async function deleteCourse(formData) {
+  await admin(); const service = createSupabaseServiceClient(); const id = String(formData.get("courseId") || ""); const { error } = await service.from("courses").update({ deleted_at: new Date().toISOString(), status: "archived", featured: false }).eq("id", id); if (error) redirect("/admin/courses?error=Course+could+not+be+deleted"); revalidatePath("/"); revalidatePath("/courses"); revalidatePath("/admin/courses"); redirect("/admin/courses?saved=deleted");
+}
 
 export async function reorderCurriculum(kind, parentId, ids, courseId = parentId) {
   await admin(); if (!Array.isArray(ids) || ids.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) return { ok: false, error: "Invalid curriculum order." };
@@ -315,7 +367,7 @@ export async function reorderCurriculum(kind, parentId, ids, courseId = parentId
 }
 
 export async function deleteCourseResource(formData) {
-  await admin(); const service = createSupabaseServiceClient(); const id = String(formData.get("id") || ""); const courseId = String(formData.get("courseId") || ""); const destination = `/admin/courses/${courseId}/curriculum`; const { data, error: lookupError } = await service.from("course_resources").select("storage_key").eq("id", id).maybeSingle(); if (lookupError || !data) redirect(`${destination}?error=${encodeURIComponent("The resource could not be found.")}`); const { error } = await service.from("course_resources").delete().eq("id", id); if (error) redirect(`${destination}?error=${encodeURIComponent("The resource could not be removed.")}`); if (data.storage_key) await service.storage.from("course-resources").remove([data.storage_key]); revalidatePath(destination); redirect(`${destination}?saved=deleted`);
+  await admin(); const service = createSupabaseServiceClient(); const id = String(formData.get("id") || ""); const courseId = String(formData.get("courseId") || ""); const destination = formData.get("returnTo") === "materials" ? `/admin/courses/${courseId}/materials` : `/admin/courses/${courseId}/curriculum`; const { data, error: lookupError } = await service.from("course_resources").select("storage_key").eq("id", id).eq("course_id", courseId).maybeSingle(); if (lookupError || !data) redirect(`${destination}?error=${encodeURIComponent("The resource could not be found.")}`); const { error } = await service.from("course_resources").delete().eq("id", id).eq("course_id", courseId); if (error) redirect(`${destination}?error=${encodeURIComponent("The resource could not be removed.")}`); if (data.storage_key) await service.storage.from("course-resources").remove([data.storage_key]); revalidatePath(destination); redirect(`${destination}?saved=deleted`);
 }
 
 export async function saveCourseSettings(formData) {
