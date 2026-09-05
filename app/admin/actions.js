@@ -8,7 +8,7 @@ import { getSiteContent } from "@/lib/data/site";
 import { clearDirectAdminSession, createDirectAdminSession, hasDirectAdminAuth, verifyDirectAdminCredentials } from "@/lib/admin-session";
 import { getStoredEmailSettings } from "@/lib/data/settings";
 import { canEncryptSmtp, encryptSmtpSettings } from "@/lib/email/crypto";
-import { sendCourseConfirmation, sendSettingsTestEmail } from "@/lib/email/delivery";
+import { sendCourseConfirmation, sendEnquiryNotification, sendSettingsTestEmail } from "@/lib/email/delivery";
 import { recordRefund, requestRefund } from "@/lib/payments/provider";
 
 async function admin() { const user = await getAdminUser(); if (!user) throw new Error("Unauthorised"); return user; }
@@ -87,7 +87,24 @@ export async function saveVideo(formData) {
   redirect("/admin/videos");
 }
 export async function saveCategory(formData) { await admin(); const name = String(formData.get("name") || "").trim(); const slug = String(formData.get("slug") || "").trim(); if (!name || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error("Use a category name and lowercase slug."); const supabase = await createSupabaseServerClient(); const { error } = await supabase.from("categories").insert({ name, slug, description:String(formData.get("description") || "") }); if (error) throw new Error("Category could not be saved."); revalidatePath("/"); revalidatePath("/admin/categories"); }
-export async function updateEnquiry(formData) { await admin(); const supabase = await createSupabaseServerClient(); await supabase.from("enquiries").update({ status:String(formData.get("status")), internal_notes:String(formData.get("notes") || "") }).eq("id", String(formData.get("id"))); revalidatePath("/admin/enquiries"); }
+export async function updateEnquiry(formData) { await admin(); const supabase = await createSupabaseServerClient(); const { error } = await supabase.from("enquiries").update({ status:String(formData.get("status")), internal_notes:String(formData.get("notes") || "") }).eq("id", String(formData.get("id"))); if (error) redirect(`/admin/enquiries?error=${encodeURIComponent("The enquiry could not be updated.")}`); revalidatePath("/admin/enquiries"); redirect("/admin/enquiries?saved=1"); }
+
+export async function retryEnquiryNotification(formData) {
+  await admin();
+  const service = createSupabaseServiceClient();
+  const id = String(formData.get("id") || "");
+  const { data: enquiry, error } = await service.from("enquiries").select("*").eq("id", id).maybeSingle();
+  if (error || !enquiry) redirect(`/admin/enquiries?error=${encodeURIComponent("The enquiry could not be found.")}`);
+  await service.from("enquiries").update({ notification_status: "pending", updated_at: new Date().toISOString() }).eq("id", id);
+  let sent = false;
+  try {
+    await sendEnquiryNotification({ name: enquiry.name, email: enquiry.email, phone: enquiry.phone || "", company: enquiry.company || "", projectType: enquiry.project_type || "", budget: enquiry.budget || "", timeline: enquiry.timeline || "", message: enquiry.message });
+    sent = true;
+  } catch {}
+  await service.from("enquiries").update({ notification_status: sent ? "sent" : "failed", updated_at: new Date().toISOString() }).eq("id", id);
+  revalidatePath("/admin/enquiries");
+  redirect(sent ? "/admin/enquiries?notification=sent" : `/admin/enquiries?error=${encodeURIComponent("The enquiry remains saved, but the email notification failed. Check SMTP settings and retry.")}`);
+}
 export async function saveSiteContent(formData) { await admin(); const value = { ...(await getSiteContent()) }; for (const key of Object.keys(value)) if (formData.has(key)) value[key] = String(formData.get(key) ?? "").trim(); const supabase = await createSupabaseServerClient(); const { error } = await supabase.from("site_content").upsert({ key: "site", value, updated_at: new Date().toISOString() }); if (error) throw new Error("Website content could not be saved."); const cleanupKey = String(formData.get("profileCleanupKey") || ""); if (cleanupKey && /^[A-Za-z0-9/_-]+\.webp$/.test(cleanupKey) && cleanupKey !== value.profileImageStorageKey) await createSupabaseServiceClient()?.storage.from("profile-images").remove([cleanupKey]); ["/", "/about", "/contact", "/work"].forEach(revalidatePath); redirect("/admin/content/hero?saved=1"); }
 
 export async function reorderVideos(videoIds) {

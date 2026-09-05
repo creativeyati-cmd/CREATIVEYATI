@@ -11,10 +11,13 @@ export async function POST(request) {
   const form = await request.formData(); const raw = Object.fromEntries(form); const requestHeaders = await headers(); const ip = requestHeaders.get("x-forwarded-for")?.split(",")[0] || "local";
   if (!allowed(ip)) return NextResponse.json({ error: "Please wait a minute before trying again." }, { status: 429 });
   const parsed = enquirySchema.safeParse(raw);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "Check the highlighted fields.", fieldErrors: parsed.error.flatten().fieldErrors }, { status: 400 });
   const supabase = createSupabaseServiceClient();
   if (!supabase) return NextResponse.json({ error: "Enquiries are not configured yet. Please use the contact details supplied by the creator." }, { status: 503 });
   const { website, consent, ...enquiry } = parsed.data;
+  const duplicateWindow = new Date(Date.now() - 2 * 60_000).toISOString();
+  const { data: duplicate } = await supabase.from("enquiries").select("id").eq("email", enquiry.email).eq("message", enquiry.message).gte("created_at", duplicateWindow).limit(1).maybeSingle();
+  if (duplicate) return NextResponse.json({ message: "Your enquiry has already been received." });
   const { data: saved, error } = await supabase.from("enquiries").insert({ name: enquiry.name, email: enquiry.email, phone: enquiry.phone || null, company: enquiry.company || null, project_type: enquiry.projectType || null, budget: enquiry.budget || null, timeline: enquiry.timeline || null, message: enquiry.message, source_page: new URL(request.url).pathname, referrer: requestHeaders.get("referer"), status: "new", notification_status: "pending" }).select("id").single();
   if (error) return NextResponse.json({ error: "Your enquiry could not be saved. Please try again." }, { status: 500 });
   try {
