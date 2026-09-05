@@ -2,20 +2,21 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient, createSupabaseServiceClient, getAdminUser } from "@/lib/supabase/server";
-import { contactSettingsSchema, emailSettingsSchema, seoSettingsSchema, videoSchema } from "@/lib/validation";
+import { bachsSettingsSchema, contactSettingsSchema, emailSettingsSchema, seoSettingsSchema, videoSchema } from "@/lib/validation";
 import { getVideoSource } from "@/lib/video-source";
 import { getSiteContent } from "@/lib/data/site";
 import { clearDirectAdminSession, createDirectAdminSession, hasDirectAdminAuth, verifyDirectAdminCredentials } from "@/lib/admin-session";
-import { getStoredEmailSettings } from "@/lib/data/settings";
-import { canEncryptSmtp, encryptSmtpSettings } from "@/lib/email/crypto";
+import { getStoredBachsSettings, getStoredEmailSettings } from "@/lib/data/settings";
+import { canEncryptSecrets, canEncryptSmtp, encryptSecretSettings, encryptSmtpSettings } from "@/lib/email/crypto";
 import { sendCourseConfirmation, sendEnquiryNotification, sendSettingsTestEmail } from "@/lib/email/delivery";
-import { recordRefund, requestRefund } from "@/lib/payments/provider";
+import { recordRefund, requestRefund, testBachsConnection } from "@/lib/payments/provider";
 
 async function admin() { const user = await getAdminUser(); if (!user) throw new Error("Unauthorised"); return user; }
 export async function login(formData) { const email = String(formData.get("email") || ""); const password = String(formData.get("password") || ""); if (hasDirectAdminAuth()) { if (!verifyDirectAdminCredentials(email, password)) redirect("/admin/login?error=Invalid+email+or+password"); await createDirectAdminSession(email); redirect("/admin"); } const supabase = await createSupabaseServerClient(); if (!supabase) return redirect("/admin/login?error=Admin+sign-in+is+not+configured"); const { error } = await supabase.auth.signInWithPassword({ email, password }); if (error) redirect("/admin/login?error=Invalid+email+or+password"); redirect("/admin"); }
 export async function logout() { await clearDirectAdminSession(); const supabase = await createSupabaseServerClient(); await supabase?.auth.signOut(); redirect("/admin/login"); }
 function jsonObject(value) { try { const parsed = JSON.parse(value || "{}"); return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } }
 function storageKeys(value) { try { const parsed = JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed.filter((key) => typeof key === "string" && /^[A-Za-z0-9/_-]+\.webp$/.test(key) && !key.includes("..")) : []; } catch { return []; } }
+function courseCoverStorageKey(value) { const marker = "/storage/v1/object/public/project-covers/"; const index = String(value || "").indexOf(marker); if (index < 0) return ""; try { const key = decodeURIComponent(String(value).slice(index + marker.length)); return /^courses\/[A-Za-z0-9/_-]+\.webp$/.test(key) && !key.includes("..") ? key : ""; } catch { return ""; } }
 
 export async function saveVideo(formData) {
   await admin();
@@ -214,6 +215,37 @@ export async function testEmailSettings() {
   redirect("/admin/settings/email?tested=1");
 }
 
+export async function saveBachsSettings(formData) {
+  await admin();
+  const parsed = bachsSettingsSchema.safeParse({
+    ...settingValues(formData, ["apiKey", "webhookSecret"]),
+    enabled: formData.get("enabled") === "on",
+    clearApiKey: formData.get("clearApiKey") === "on",
+    clearWebhookSecret: formData.get("clearWebhookSecret") === "on",
+  });
+  if (!parsed.success) redirect(`/admin/payments?error=${encodeURIComponent(parsed.error.issues[0].message)}`);
+  if (!canEncryptSecrets()) redirect("/admin/payments?error=Server-side+secret+encryption+is+not+configured");
+  const existing = await getStoredBachsSettings();
+  if (existing._decryptionError) redirect("/admin/payments?error=Saved+Bachs+credentials+could+not+be+decrypted");
+  const apiKey = parsed.data.clearApiKey ? "" : parsed.data.apiKey || existing.apiKey || "";
+  const webhookSecret = parsed.data.clearWebhookSecret ? "" : parsed.data.webhookSecret || existing.webhookSecret || "";
+  await saveSetting("bachs", { sealed: encryptSecretSettings({ enabled: parsed.data.enabled, apiKey, webhookSecret }) });
+  revalidatePath("/admin");
+  revalidatePath("/admin/payments");
+  redirect("/admin/payments?saved=configuration");
+}
+
+export async function testBachsSettings() {
+  await admin();
+  let result;
+  try {
+    result = await testBachsConnection();
+  } catch (error) {
+    redirect(`/admin/payments?error=${encodeURIComponent(error.message || "Bachs connection test failed.")}`);
+  }
+  redirect(`/admin/payments?tested=${result.limited ? "limited" : "connected"}`);
+}
+
 function lineList(value) { return String(value || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean); }
 function moneyToMinor(value) { const amount = Number(value); return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : null; }
 function validSlug(value) { return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value); }
@@ -235,7 +267,10 @@ export async function saveCourse(formData) {
   if (id) result = await supabase.from("courses").update(record).eq("id", id).select("id").single();
   else { const { data: last } = await supabase.from("courses").select("display_order").order("display_order", { ascending: false }).limit(1).maybeSingle(); result = await supabase.from("courses").insert({ ...record, display_order: Number(last?.display_order ?? -1) + 1 }).select("id").single(); }
   if (result.error) redirect(`/admin/courses/${id || "new"}?error=${encodeURIComponent("The course could not be saved. Check that its slug is unique.")}`);
-  revalidatePath("/courses"); revalidatePath(`/courses/${slug}`); revalidatePath("/admin/courses"); redirect(`/admin/courses/${result.data.id}/edit?saved=1`);
+  const keepCoverKey = courseCoverStorageKey(coverImageUrl);
+  const cleanupCoverKeys = storageKeys(formData.get("courseCoverCleanupKeys")).filter((key) => key.startsWith("courses/") && key !== keepCoverKey);
+  if (cleanupCoverKeys.length) await createSupabaseServiceClient()?.storage.from("project-covers").remove(cleanupCoverKeys);
+  revalidatePath("/"); revalidatePath("/courses"); revalidatePath(`/courses/${slug}`); revalidatePath("/admin/courses"); redirect(`/admin/courses/${result.data.id}/edit?saved=1`);
 }
 
 export async function saveCourseSection(formData) {
@@ -248,7 +283,17 @@ export async function saveCourseSection(formData) {
 
 export async function saveCourseLesson(formData) {
   await admin(); const supabase = await createSupabaseServerClient(); const courseId = String(formData.get("courseId") || ""); const sectionId = String(formData.get("sectionId") || ""); const lessonId = String(formData.get("id") || ""); const title = String(formData.get("title") || "").trim(); const slug = String(formData.get("slug") || "").trim(); const destination = `/admin/courses/${courseId}/curriculum`; if (!title || !validSlug(slug)) redirect(`${destination}?error=${encodeURIComponent("Lesson title and lowercase slug are required.")}`);
-  const lessonRecord = { section_id: sectionId, title, slug, lesson_type: String(formData.get("lessonType") || "video"), body: String(formData.get("body") || ""), video_provider: String(formData.get("videoProvider") || "") || null, video_asset_id: String(formData.get("videoAssetId") || "") || null, video_url: String(formData.get("videoUrl") || "") || null, external_url: String(formData.get("externalUrl") || "") || null, duration_seconds: Math.max(0, Number(formData.get("durationSeconds")) || 0), is_preview: formData.get("isPreview") === "on", updated_at: new Date().toISOString() };
+  const lessonType = String(formData.get("lessonType") || "video");
+  const videoUrl = String(formData.get("videoUrl") || "").trim();
+  const externalUrl = String(formData.get("externalUrl") || "").trim();
+  if ((videoUrl && !/^https?:\/\//i.test(videoUrl)) || (externalUrl && !/^https?:\/\//i.test(externalUrl))) redirect(`${destination}?error=${encodeURIComponent("Use complete https:// links for lesson media and resources.")}`);
+  const source = videoUrl ? getVideoSource(videoUrl) : null;
+  let videoProvider = String(formData.get("videoProvider") || "").trim();
+  let videoAssetId = String(formData.get("videoAssetId") || "").trim();
+  if (source) { videoProvider = source.provider; videoAssetId = source.assetId; }
+  if (lessonType === "video" && !videoUrl && !videoAssetId) redirect(`${destination}?error=${encodeURIComponent("Add a YouTube, Google Drive, or protected-provider video link.")}`);
+  if (videoUrl && ["youtube", "google_drive"].includes(videoProvider) && !source) redirect(`${destination}?error=${encodeURIComponent("That YouTube or Google Drive link could not be recognised.")}`);
+  const lessonRecord = { section_id: sectionId, title, slug, lesson_type: lessonType, body: String(formData.get("body") || ""), video_provider: videoProvider || null, video_asset_id: videoAssetId || null, video_url: videoUrl || null, external_url: externalUrl || null, duration_seconds: Math.max(0, Number(formData.get("durationSeconds")) || 0), is_preview: formData.get("isPreview") === "on", updated_at: new Date().toISOString() };
   if (lessonId) { const { error } = await supabase.from("course_lessons").update(lessonRecord).eq("id", lessonId); if (error) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be updated. Check that its slug is unique in this section.")}`); revalidatePath(destination); redirect(`${destination}?saved=lesson`); }
   const { data: last } = await supabase.from("course_lessons").select("display_order").eq("section_id", sectionId).order("display_order", { ascending: false }).limit(1).maybeSingle();
   const { error } = await supabase.from("course_lessons").insert({ ...lessonRecord, display_order: Number(last?.display_order ?? -1) + 1 });

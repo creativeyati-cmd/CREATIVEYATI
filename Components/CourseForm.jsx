@@ -1,15 +1,19 @@
+import Link from "next/link";
+import CourseCoverField from "@/Components/CourseCoverField";
+
 export default function CourseForm({ course, action }) {
   const lines = (value) => Array.isArray(value) ? value.join("\n") : "";
   return <form className="admin-form course-admin-form" action={action}>
     <input type="hidden" name="id" value={course?.id || ""} />
     <label>Title<input name="title" defaultValue={course?.title} required /></label><label>Slug<input name="slug" defaultValue={course?.slug} pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></label>
     <label className="form-wide">Short description<textarea name="shortDescription" rows="2" defaultValue={course?.shortDescription} /></label><label className="form-wide">Full description<textarea name="description" rows="7" defaultValue={course?.description} /></label>
-    <label className="form-wide">16:9 cover image URL<input type="url" name="coverImageUrl" defaultValue={course?.coverImageUrl} required /></label><label>Instructor<input name="instructor" defaultValue={course?.instructor} /></label><label>Category<input name="category" defaultValue={course?.category} /></label>
+    <CourseCoverField course={course} /><label>Instructor<input name="instructor" defaultValue={course?.instructor} /></label><label>Category<input name="category" defaultValue={course?.category} /></label>
     <label>Difficulty<select name="difficulty" defaultValue={course?.difficulty || "All levels"}><option>Beginner</option><option>Intermediate</option><option>Advanced</option><option>All levels</option></select></label><label>Language<input name="language" defaultValue={course?.language || "English"} /></label><label>Estimated duration<input name="estimatedDuration" defaultValue={course?.estimatedDuration} placeholder="4 hours" /></label><label>Currency<input name="currency" maxLength="3" defaultValue={course?.currency || "NGN"} /></label>
     <label>Price<input type="number" name="price" min="0" step="0.01" defaultValue={course ? course.priceMinor / 100 : 0} /></label><label>Discounted price<input type="number" name="discountedPrice" min="0" step="0.01" defaultValue={course?.discountedPriceMinor == null ? "" : course.discountedPriceMinor / 100} /></label>
     <label>Status<select name="status" defaultValue={course?.status || "draft"}><option value="draft">Draft</option><option value="published">Published</option><option value="unpublished">Unpublished</option><option value="archived">Archived</option></select></label><label className="check-label"><input type="checkbox" name="isFree" defaultChecked={course?.isFree} />Free course</label><label className="check-label"><input type="checkbox" name="featured" defaultChecked={course?.featured} />Featured course</label>
     <label className="form-wide">Learning outcomes · one per line<textarea name="learningOutcomes" rows="5" defaultValue={lines(course?.learningOutcomes)} /></label><label className="form-wide">Requirements · one per line<textarea name="requirements" rows="4" defaultValue={lines(course?.requirements)} /></label><label className="form-wide">Target audience · one per line<textarea name="targetAudience" rows="4" defaultValue={lines(course?.targetAudience)} /></label>
     <label>SEO title<input name="seoTitle" defaultValue={course?.seoTitle} /></label><label>Open Graph image URL<input type="url" name="ogImageUrl" defaultValue={course?.ogImageUrl} /></label><label className="form-wide">SEO description<textarea name="seoDescription" rows="3" defaultValue={course?.seoDescription} /></label>
     <button className="button">Save course</button>
+    <div className="course-curriculum-callout form-wide">{course?.id ? <><strong>Add course lessons and downloads</strong><p>Use Curriculum to add YouTube, Google Drive, protected-provider or external links, lesson copy, and uploaded PDF resources.</p><Link className="inline-link" href={`/admin/courses/${course.id}/curriculum`}>Open curriculum</Link></> : <><strong>Course lessons become available after saving</strong><p>Save this course first, then add video links and uploaded PDF materials from its Curriculum page.</p></>}</div>
   </form>;
 }

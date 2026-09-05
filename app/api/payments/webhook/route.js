@@ -3,7 +3,7 @@ import { completeVerifiedOrder, recordFailedCollection, recordRefund, recordWebh
 export async function POST(request) {
   const raw = await request.text();
   try {
-    const valid = validWebhookSignature(raw, request.headers.get("x-bachs-timestamp"), request.headers.get("x-bachs-signature"));
+    const valid = await validWebhookSignature(raw, request.headers.get("x-bachs-timestamp"), request.headers.get("x-bachs-signature"));
     if (!valid) return new Response("Invalid signature", { status: 401 });
     const event = JSON.parse(raw);
     if (!event.id || !event.type || !event.data) return new Response("Invalid event", { status: 400 });

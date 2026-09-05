@@ -377,6 +377,11 @@
 .integration-status p { grid-column:1/-1; margin:0; padding:13px 16px; color:#7a5200; background:#fff4d6; font-size:.8rem; line-height:1.45; }
 .integration-status.is-ready { border-left:3px solid var(--accent); }
 .integration-status.is-ready span { color:#587000; }
+.integration-form { margin-bottom:0; }
+.integration-form small,.course-cover-url small { color:var(--muted); line-height:1.45; }
+.admin-section-heading { max-width:780px; margin:54px 0 20px; padding-top:24px; border-top:1px solid var(--border); }
+.admin-section-heading p { margin:0 0 7px; color:var(--muted); font-size:.7rem; letter-spacing:.12em; }
+.admin-section-heading h2 { margin:0; font-size:1.5rem; font-weight:500; }
 .admin-empty-state { max-width:780px; padding:24px 0; text-align:left; border-top:1px solid var(--border); }
 .enquiry-record { display:grid; gap:16px; padding:22px 0; border-top:1px solid var(--border); }
 .enquiry-record>header { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
@@ -611,6 +616,14 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
 .cover-uploader button:disabled { opacity:.45; cursor:not-allowed; }
 .cover-file-input { position:absolute; width:1px!important; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; }
 .cover-upload-preview { display:block; width:100%; aspect-ratio:16/9; margin-top:14px; object-fit:cover; background:#050505; }
+.course-cover-uploader { max-width:780px; }
+.course-cover-url { display:grid; gap:7px; margin-top:14px; color:var(--muted-foreground); font-size:.78rem; }
+.course-cover-url input { width:100%; background:var(--surface); color:var(--foreground); border:1px solid var(--border); padding:10px; }
+.course-curriculum-callout { margin-top:12px; padding:18px; border:1px solid var(--border); background:var(--surface-elevated); }
+.course-curriculum-callout p { margin:7px 0 9px; color:var(--muted-foreground); font-size:.8rem; line-height:1.5; }
+.course-admin-list>div { align-items:center; }
+.course-row-actions { display:flex!important; grid-auto-flow:column; gap:16px!important; }
+.course-row-actions a { color:var(--muted-foreground); font-size:.8rem; }
 .upload-status { display:grid; gap:7px; margin-top:12px; color:var(--muted-foreground); font-size:.74rem; }
 .upload-status progress { width:100%; height:6px; accent-color:#9BC300; }
 .form-warning,.upload-error { margin:10px 0 0; color:#9a6500; font-size:.74rem; line-height:1.45; }
@@ -638,6 +651,7 @@ html[data-theme="light"] .carousel-shell { background:#fff; }
   .cover-upload-grid,.admin-preview-grid { grid-template-columns:1fr; }
   .admin-preview-grid figure:nth-child(2),.admin-preview-grid figure:nth-child(3) { max-width:100%; }
   .cover-uploader-heading { flex-direction:column; }
+  .course-admin-list>div { align-items:flex-start; flex-direction:column; }
 }
 
 @media (prefers-reduced-motion:reduce) {

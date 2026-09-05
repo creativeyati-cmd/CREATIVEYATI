@@ -12,18 +12,19 @@ const links = [
   { href: "/admin/enquiries", label: "Enquiries", icon: "mail" },
   { href: "/admin/courses", label: "Courses", icon: "video" },
   { href: "/admin/orders", label: "Orders", icon: "folder" },
-  { href: "/admin/payments", label: "Payments", icon: "folder" },
+  { href: "/admin/payments", label: "Bachs payments", icon: "folder" },
   { href: "/admin/coupons", label: "Coupons", icon: "folder" },
   { href: "/admin/settings/social", label: "Social profiles", icon: "user" },
+  { href: "/admin/settings/email", label: "SMTP email", icon: "mail" },
   { href: "/admin/course-settings", label: "Course settings", icon: "settings" },
   { href: "/admin/settings", label: "Settings", icon: "settings" },
 ];
 
 function isCurrentPage(pathname, href) {
   if (href === "/admin") return pathname === href;
-  if (href === "/admin/settings/social") return pathname === href;
+  if (["/admin/settings/social", "/admin/settings/email"].includes(href)) return pathname === href;
   if (href === "/admin/settings") {
-    return pathname === href || (pathname.startsWith(`${href}/`) && pathname !== "/admin/settings/social");
+    return pathname === href || (pathname.startsWith(`${href}/`) && !["/admin/settings/social", "/admin/settings/email"].includes(pathname));
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

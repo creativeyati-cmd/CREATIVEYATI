@@ -11,10 +11,10 @@ function LessonFields({ lesson }) {
     <label>Title<input name="title" defaultValue={lesson?.title} required /></label>
     <label>Slug<input name="slug" defaultValue={lesson?.slug} pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></label>
     <label>Type<select name="lessonType" defaultValue={lesson?.lessonType || "video"}><option value="video">Recorded video</option><option value="pdf">PDF</option><option value="text">Text</option><option value="external">External resource</option><option value="mixed">Mixed</option></select></label>
-    <label>Video provider<select name="videoProvider" defaultValue={lesson?.videoProvider || ""}>{providers.map((value) => <option key={value} value={value}>{value || "None"}</option>)}</select></label>
-    <label>Video asset ID<input name="videoAssetId" defaultValue={lesson?.videoAssetId} /></label>
-    <label>Protected video URL<input type="url" name="videoUrl" defaultValue={lesson?.videoUrl} /></label>
-    <label>External resource URL<input type="url" name="externalUrl" defaultValue={lesson?.externalUrl} /></label>
+    <label>Video provider<select name="videoProvider" defaultValue={lesson?.videoProvider || ""}>{providers.map((value) => <option key={value} value={value}>{value || "Detect from link"}</option>)}</select></label>
+    <label>Video asset ID<input name="videoAssetId" defaultValue={lesson?.videoAssetId} placeholder="Filled automatically for YouTube or Drive" /></label>
+    <label className="form-wide">Lesson video link<input type="url" name="videoUrl" defaultValue={lesson?.videoUrl} placeholder="YouTube, public Google Drive, Vimeo, Mux or another protected video URL" /><small>YouTube and Google Drive provider details are detected automatically from the link.</small></label>
+    <label className="form-wide">External lesson or resource link<input type="url" name="externalUrl" defaultValue={lesson?.externalUrl} placeholder="https://…" /></label>
     <label>Duration in seconds<input type="number" name="durationSeconds" min="0" defaultValue={lesson?.durationSeconds || 0} /></label>
     <label className="form-wide">Lesson text<textarea name="body" rows="5" defaultValue={lesson?.body} /></label>
     <label className="check-label"><input type="checkbox" name="isPreview" defaultChecked={lesson?.isPreview} />Free preview</label>
@@ -46,7 +46,7 @@ export default async function CurriculumPage({ params, searchParams }) {
   const savedMessage = query.saved === "resource" ? "Resource saved." : query.saved === "section" ? "Section saved." : query.saved === "lesson" ? "Lesson saved." : query.saved === "deleted" ? "Curriculum item deleted." : "";
 
   return <>
-    <div className="admin-title"><p>COURSES</p><h1>{course.title} curriculum</h1><div className="admin-subnav"><Link href={`/admin/courses/${id}/edit`}>Course details</Link><Link href={`/admin/courses/${id}/students`}>Students</Link></div></div>
+    <div className="admin-title"><p>COURSES</p><h1>{course.title} curriculum</h1><p className="admin-lede">Add course video links, lesson copy, external resources and uploaded PDF materials. Videos remain externally hosted.</p><div className="admin-subnav"><Link href={`/admin/courses/${id}/edit`}>Course details</Link><Link href={`/admin/courses/${id}/students`}>Students</Link></div></div>
     {savedMessage && <p className="success-note">{savedMessage}</p>}
     {query.error && <p className="form-error">{query.error}</p>}
     <CurriculumReorder courseId={course.id} sections={course.sections} />

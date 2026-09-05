@@ -5,5 +5,25 @@ import { canEncryptSmtp } from "@/lib/email/crypto";
 export default async function EmailSettings({ searchParams }) {
   const [settings, query] = await Promise.all([getEmailSettings(), searchParams]);
   const encryptionReady = canEncryptSmtp();
-  return <><div className="admin-title"><p>SETTINGS</p><h1>Email delivery</h1><p className="admin-lede">Send a notification to your inbox whenever the portfolio receives an enquiry. Passwords are encrypted before storage and never returned to this page.</p></div>{query.saved && <p className="success-note">Email delivery settings updated.</p>}{query.tested && <p className="success-note">Test email sent successfully.</p>}{query.error && <p className="form-error">{query.error}</p>}{!encryptionReady && <p className="form-error">SMTP password encryption is not configured on the server. Other settings can be saved, but a new password cannot be stored yet.</p>}<form className="admin-form" action={saveEmailSettings}><label className="check-label form-wide"><input name="enabled" type="checkbox" defaultChecked={settings.enabled} /> Enable enquiry email notifications</label><label>SMTP host<input name="host" defaultValue={settings.host} placeholder="smtp.example.com" /></label><label>SMTP port<input name="port" type="number" min="1" max="65535" defaultValue={settings.port} required /></label><label>Username<input name="username" autoComplete="username" defaultValue={settings.username} /></label><label>Password<input name="password" type="password" autoComplete="new-password" placeholder={settings.hasPassword ? "Saved — leave blank to keep" : "Enter SMTP password"} disabled={!encryptionReady} /></label><label className="check-label"><input name="secure" type="checkbox" defaultChecked={settings.secure} /> Use implicit TLS (usually port 465)</label><label className="check-label"><input name="clearPassword" type="checkbox" /> Remove the saved password</label><label>From name<input name="fromName" defaultValue={settings.fromName} placeholder="CreativeYati Portfolio" /></label><label>From email<input name="fromEmail" type="email" defaultValue={settings.fromEmail} /></label><label className="form-wide">Notification recipient<input name="recipientEmail" type="email" defaultValue={settings.recipientEmail} /></label><button className="button">Save email settings</button></form><form className="admin-test-form" action={testEmailSettings}><button className="button button-secondary" type="submit" disabled={!settings.enabled}>Send test email</button><small>Save the settings first, then send a live test to the notification recipient.</small></form></>;
+  return <>
+    <div className="admin-title"><p>SETTINGS</p><h1>SMTP email API</h1><p className="admin-lede">Send a notification to your inbox whenever the portfolio receives an enquiry. Passwords are encrypted before storage and never returned to this page.</p></div>
+    {query.saved && <p className="success-note">Email delivery settings updated.</p>}
+    {query.tested && <p className="success-note">Test email sent successfully.</p>}
+    {query.error && <p className="form-error">{query.error}</p>}
+    {!encryptionReady && <p className="form-error">SMTP password encryption is not configured on the server. Other settings can be saved, but a new password cannot be stored yet.</p>}
+    <form className="admin-form" action={saveEmailSettings}>
+      <label className="check-label form-wide"><input name="enabled" type="checkbox" defaultChecked={settings.enabled} /> Enable enquiry email notifications</label>
+      <label>SMTP host<input name="host" defaultValue={settings.host} placeholder="smtp.example.com" /></label>
+      <label>SMTP port<input name="port" type="number" min="1" max="65535" defaultValue={settings.port} required /></label>
+      <label>Username<input name="username" autoComplete="username" defaultValue={settings.username} /></label>
+      <label>Password<input name="password" type="password" autoComplete="new-password" placeholder={settings.hasPassword ? "Saved — leave blank to keep" : "Enter SMTP password"} disabled={!encryptionReady} /></label>
+      <label className="check-label"><input name="secure" type="checkbox" defaultChecked={settings.secure} /> Use implicit TLS (usually port 465)</label>
+      <label className="check-label"><input name="clearPassword" type="checkbox" /> Remove the saved password</label>
+      <label>From name<input name="fromName" defaultValue={settings.fromName} placeholder="CreativeYati Portfolio" /></label>
+      <label>From email<input name="fromEmail" type="email" defaultValue={settings.fromEmail} /></label>
+      <label className="form-wide">Notification recipient<input name="recipientEmail" type="email" defaultValue={settings.recipientEmail} /></label>
+      <button className="button">Save SMTP settings</button>
+    </form>
+    <form className="admin-test-form" action={testEmailSettings}><button className="button button-secondary" type="submit" disabled={!settings.enabled}>Send test email</button><small>Save first, then send a live SMTP test to the notification recipient.</small></form>
+  </>;
 }
