@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import LessonWatermark from "@/Components/LessonWatermark";
 
-export default function CourseVideoPlayer({ lesson, admin = false }) {
+export default function CourseVideoPlayer({ lesson, admin = false, watermark = "" }) {
   const [state, setState] = useState("loading");
   const lastSaved = useRef(0);
   const orientation = lesson.orientation === "portrait" ? "portrait" : "landscape";
@@ -15,8 +16,9 @@ export default function CourseVideoPlayer({ lesson, admin = false }) {
   return <div className={`course-video-player is-${orientation}`} style={{ "--course-video-ratio": ratio }}>
     {state === "loading" && <div className="course-video-state">Loading video…</div>}
     {state === "error" && <div className="course-video-state is-error" role="alert">This video could not be played. Check its source and access settings.</div>}
-    {uploaded ? <video src={src} poster={poster || undefined} controls controlsList={lesson.allowDownload ? undefined : "nodownload"} preload="metadata" playsInline onLoadedMetadata={(event) => { setState("ready"); if (!admin && lesson.lastPosition > 0 && lesson.lastPosition < event.currentTarget.duration - 5) event.currentTarget.currentTime = lesson.lastPosition; }} onTimeUpdate={(event) => { if (admin || !lesson.courseId || event.currentTarget.currentTime - lastSaved.current < 10) return; lastSaved.current = event.currentTarget.currentTime; fetch("/api/learn/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ courseId: lesson.courseId, lessonId: lesson.id, position: Math.floor(event.currentTarget.currentTime) }) }).catch(() => {}); }} onError={() => setState("error")}>
+    {uploaded ? <video src={src} poster={poster || undefined} controls controlsList={lesson.allowDownload ? undefined : "nodownload"} disablePictureInPicture preload="metadata" playsInline onLoadedMetadata={(event) => { setState("ready"); if (!admin && lesson.lastPosition > 0 && lesson.lastPosition < event.currentTarget.duration - 5) event.currentTarget.currentTime = lesson.lastPosition; }} onTimeUpdate={(event) => { if (admin || !lesson.courseId || event.currentTarget.currentTime - lastSaved.current < 10) return; lastSaved.current = event.currentTarget.currentTime; fetch("/api/learn/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ courseId: lesson.courseId, lessonId: lesson.id, position: Math.floor(event.currentTarget.currentTime) }) }).catch(() => {}); }} onError={() => setState("error")}>
       {lesson.captionsUrl && <track kind="captions" src={lesson.captionsUrl} srcLang="en" label="Captions" default />}
     </video> : <iframe src={src} title={lesson.title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="lazy" onLoad={() => setState("ready")} />}
+    {watermark && <LessonWatermark label={watermark} />}
   </div>;
 }
