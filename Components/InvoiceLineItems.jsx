@@ -1,4 +1,5 @@
 "use client";
+import { Input } from "@/Components/FormControls";
 
 import { useState } from "react";
 
@@ -23,9 +24,9 @@ export default function InvoiceLineItems({ defaultItems = [] }) {
   return <section className="invoice-items form-wide">
     <p className="invoice-items-head">Line items</p>
     {rows.map((row, index) => <div className="invoice-item-row" key={index}>
-      <label>Description<input name="itemDescription" value={row.description} onChange={(event) => update(index, "description", event.target.value)} placeholder="Beauty commercial — 30s hero film" required /></label>
-      <label>Qty<input name="itemQuantity" value={row.quantity} onChange={(event) => update(index, "quantity", event.target.value)} inputMode="decimal" /></label>
-      <label>Unit price<input name="itemUnitPrice" value={row.unitPrice} onChange={(event) => update(index, "unitPrice", event.target.value)} inputMode="decimal" placeholder="1800000" /></label>
+      <label>Description<Input name="itemDescription" value={row.description} onChange={(event) => update(index, "description", event.target.value)} placeholder="Beauty commercial — 30s hero film" required /></label>
+      <label>Qty<Input name="itemQuantity" value={row.quantity} onChange={(event) => update(index, "quantity", event.target.value)} inputMode="decimal" /></label>
+      <label>Unit price<Input name="itemUnitPrice" value={row.unitPrice} onChange={(event) => update(index, "unitPrice", event.target.value)} inputMode="decimal" placeholder="1800000" /></label>
       <button className="inline-link" type="button" onClick={() => remove(index)} disabled={rows.length === 1}>Remove</button>
     </div>)}
     <div className="invoice-items-foot">

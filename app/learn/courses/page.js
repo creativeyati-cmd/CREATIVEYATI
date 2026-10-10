@@ -1,3 +1,5 @@
+import { PageHeader } from "@/Components/DashboardPageShell";
+import { courseState } from "@/lib/learning-progress";
 import Link from "next/link";
 import Image from "next/image";
 import { getStudentDashboard } from "@/lib/data/courses";
@@ -7,16 +9,6 @@ import { EmptyState } from "@/Components/Feedback";
 export const metadata = { title: "My courses" };
 export const dynamic = "force-dynamic";
 
-function courseState(item) {
-  const lessons = item.course?.sections.flatMap((section) => section.lessons) || [];
-  const completed = item.progress.filter((entry) => entry.completed).length;
-  const percent = lessons.length ? Math.round(completed / lessons.length * 100) : 0;
-  const recentProgress = [...item.progress].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
-  const recentLesson = lessons.find((lesson) => lesson.id === recentProgress?.lesson_id);
-  const nextLesson = recentLesson || lessons.find((lesson) => !item.progress.some((entry) => entry.lesson_id === lesson.id && entry.completed)) || lessons[0];
-  const resources = item.course?.sections.flatMap((section) => section.lessons.flatMap((lesson) => lesson.resources.map((resource) => ({ ...resource, lessonTitle: lesson.title })))) || [];
-  return { lessons, completed, percent, recentProgress, recentLesson, nextLesson, resources };
-}
 
 const TABS = [
   { value: "", label: "All" },
@@ -33,20 +25,20 @@ export default async function MyCoursesPage({ searchParams }) {
   const resources = states.flatMap((entry) => entry.resources.map((resource) => ({ ...resource, course: entry.item.course })));
 
   return <section className="public-note">
-    <div className="admin-title"><p>MY LEARNING</p><h1>My courses</h1><p className="admin-lede">Everything you are enrolled in, with progress and the next lesson.</p></div>
+    <PageHeader title={<>My courses</>} eyebrow={<>MY LEARNING</>} description={<>Everything you are enrolled in, with progress and the next lesson.</>}/>
     {states.length ? <>
       <Tabs basePath="/learn/courses" param="status" current={status} items={TABS.map((tab) => ({ value: tab.value, label: tab.label, count: counts[tab.value] }))} />
       <div className="learning-grid">{filtered.map(({ item, percent, nextLesson }) => <article key={item.id}>
         {item.course.coverImageUrl ? <Image src={item.course.coverImageUrl} alt={item.course.title + " cover"} width={640} height={360} sizes="(max-width: 767px) 90vw, 180px" unoptimized /> : null}
         <div>
-          <span className="fm-ring" style={{ background: "conic-gradient(#C6F000 " + (percent * 3.6) + "deg, #E9E9E1 0deg)" }} role="img" aria-label={percent + " percent complete"}><span>{percent}%</span></span>
+          <span className="fm-ring" style={{ background: "conic-gradient(#2c543c " + (percent * 3.6) + "deg, #E9E9E1 0deg)" }} role="img" aria-label={percent + " percent complete"}><span>{percent}%</span></span>
           <h2>{item.course.title}</h2>
           <p className="fm-continue-meta">{nextLesson ? "Next: " + nextLesson.title : "All lessons complete"}</p>
           <progress max="100" value={percent}>{percent}%</progress>
           <Link className="button" href={nextLesson ? "/learn/" + item.course.slug + "/lesson/" + nextLesson.id : "/learn/" + item.course.slug}>{percent === 100 ? "Review course" : "Continue"}</Link>
         </div>
       </article>)}</div>
-      {!filtered.length && <p className="empty-state">Nothing in this tab.</p>}
+      {!filtered.length && <EmptyState title="Nothing here yet">Nothing in this tab.</EmptyState>}
     </> : <EmptyState title="You haven't enrolled yet" action={<Link className="button" href="/courses">Browse courses</Link>}>When you enrol, your course appears here with its progress and the next lesson.</EmptyState>}
     {resources.length > 0 && <section className="student-downloads"><h2>Course materials</h2><div className="admin-list">{resources.map((resource) => <div key={resource.id}><span>{resource.title}<small>{resource.course.title} / {resource.lessonTitle}</small></span><span><a className="inline-link" href={"/api/learn/resources/" + resource.id} target="_blank" rel="noreferrer">View</a>{resource.allowDownload && <a className="inline-link" href={"/api/learn/resources/" + resource.id + "?download=1"}>Download</a>}</span></div>)}</div></section>}
   </section>;

@@ -1,4 +1,11 @@
-import PublicHeader from "@/Components/PublicHeader";
-import { getSiteContent } from "@/lib/data/site";
+import ToastFeedback from "@/Components/AdminToast";
+import Link from "next/link";
+import AuthLayout from "@/Components/AuthLayout";
+import SubmitButton from "@/Components/SubmitButton";
 import { requestPasswordReset } from "@/app/student-actions";
-export default async function ResetPasswordPage({ searchParams }) { const [site, query] = await Promise.all([getSiteContent(), searchParams]); return <main className="public-page"><PublicHeader site={site} /><section className="auth-page public-note"><h1 className="page-title">Reset password.</h1>{query.message && <p className="success-note">{query.message}</p>}<form className="auth-form" action={requestPasswordReset}><label>Email<input type="email" name="email" required /></label><button className="button">Send reset link</button></form></section></main>; }
+import { safeNext } from "@/lib/auth/redirect";
+export default async function ResetPage({searchParams}) {
+ const query=await searchParams,next=safeNext(query.next);
+ return <AuthLayout title="Forgot your password?" description="Enter your account email to receive a password reset code.">{query.error&&<ToastFeedback kind="error" message={query.error}/>}{query.message&&<p role="status" className="success-note">{query.message}</p>}
+ <form className="admin-form fm-auth-form" action={requestPasswordReset}><input type="hidden" name="next" value={next}/><label>Email<input name="email" type="email" autoComplete="email" required/></label><SubmitButton pendingLabel="Sending...">Send reset code</SubmitButton></form><p className="fm-auth-alt"><Link href={"/login?next="+encodeURIComponent(next)}>Back to sign in</Link></p></AuthLayout>;
+}

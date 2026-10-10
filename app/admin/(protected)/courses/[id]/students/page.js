@@ -1,4 +1,9 @@
-import Link from "next/link";
+import DataTable from "@/Components/DataTable";
+import Badge from "@/Components/Badge";
+import ConfirmActionForm from "@/Components/ConfirmActionForm";
+import { Input, Button } from "@/Components/FormControls";
+import { PageHeader } from "@/Components/DashboardPageShell";
+import CourseWorkflowNav from "@/Components/CourseWorkflowNav";
 import { notFound } from "next/navigation";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { getAdminCourse } from "@/lib/data/courses";
@@ -16,12 +21,12 @@ export default async function CourseStudentsPage({ params, searchParams }) {
   const users = new Map((usersResult.data?.users || []).map((user) => [user.id, user]));
 
   return <>
-    <div className="admin-title"><p>COURSES</p><h1>{course.title} students</h1><div className="admin-subnav"><Link href={`/admin/courses/${id}/edit`}>Course details</Link><Link href={`/admin/courses/${id}/curriculum`}>Curriculum</Link></div></div>
+    <PageHeader title={<>{course.title} students</>} eyebrow={<>COURSES</>}/><CourseWorkflowNav courseId={id} course={course} active="students" />
     {query.saved === "granted" && <p className="success-note">Course access granted.</p>}
     {query.saved === "revoked" && <p className="success-note">Course access revoked.</p>}
     {query.error && <p className="form-error">{query.error}</p>}
     {(enrolmentsError || usersResult.error) && <p className="form-error">Student access records could not be loaded.</p>}
-    <form className="admin-form compact" action={grantCourseAccess}><input type="hidden" name="courseId" value={id} /><label>Student email<input type="email" name="email" required /></label><button className="button">Grant access</button></form>
-    {enrolments.length ? <div className="admin-list">{enrolments.map((enrolment) => <form key={enrolment.id} action={revokeCourseAccess}><input type="hidden" name="id" value={enrolment.id} /><input type="hidden" name="courseId" value={id} /><span>{users.get(enrolment.student_id)?.email || enrolment.student_id}<small>{enrolment.access_source} · {enrolment.active ? "Active" : "Revoked"}</small></span>{enrolment.active && <button>Revoke access</button>}</form>)}</div> : !enrolmentsError && <p>No enrolled students yet.</p>}
+    <form className="admin-form compact" action={grantCourseAccess}><Input type="hidden" name="courseId" value={id} /><label>Student email<Input type="email" name="email" required /></label><label className="check-label"><input type="checkbox" name="paidApproved"/>I have verified payment for this manual enrollment</label><Button className="button">Grant access</Button></form>
+    <DataTable label="Enrolments" error={enrolmentsError ? "Student access records could not be loaded." : undefined} emptyTitle="No enrolled students yet" emptyDescription="Grant access above to enrol a student."><div><b>Student</b><b>Source</b><b>Status</b><b>Actions</b></div>{enrolments.map(enrolment => <div key={enrolment.id}><span>{users.get(enrolment.student_id)?.email || enrolment.student_id}</span><span>{enrolment.access_source}</span><Badge tone={enrolment.active ? "success" : "error"}>{enrolment.active ? "Active" : "Revoked"}</Badge><span>{enrolment.active && <ConfirmActionForm action={revokeCourseAccess} fields={{id:enrolment.id,courseId:id}} className="danger-action" label="Revoke access" confirmText="Revoke this student's access to the course?"/>}</span></div>)}</DataTable>
   </>;
 }

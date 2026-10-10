@@ -1,0 +1,186 @@
+/* ---- reference documents ---- */
+/* shared dashboard sizing and touch controls */
+.admin-shell,.learn-area{--fm-page:#FFFFFF;--background:#FFFFFF;background:#FFFFFF}
+.admin-shell>.admin-main,.learn-area>.admin-main{background:#FFFFFF}
+.contact-form input.honeypot{position:fixed;left:0;top:0;width:1px;height:1px;min-width:0;padding:0;border:0;clip-path:inset(50%);overflow:hidden}
+.admin-shell .admin-main{min-width:0;overflow-wrap:anywhere}
+.admin-shell aside{overscroll-behavior:contain;scrollbar-width:thin}
+.admin-shell .admin-shell-head .wordmark{font-size:12px;line-height:1.5;white-space:normal}
+.admin-shell :is(input,select,textarea){min-width:0;max-width:100%}
+.admin-shell .admin-title{flex-wrap:wrap;gap:16px}
+.admin-shell :is(.admin-form,.admin-form-grid,.course-editor-layout)>*{min-width:0}
+.admin-shell .admin-table{overflow-x:auto}
+.admin-shell .admin-nav-trigger{position:relative;min-width:44px;min-height:44px}
+.admin-shell :is(.admin-nav-close,.admin-shell-toggle){min-width:36px;min-height:36px}
+@media(max-width:899px){
+ .admin-shell>.admin-main,.admin-shell>.admin-main:has(.admin-workspace),.admin-shell>.admin-main:has(.student-workspace){padding:24px 20px 40px}
+ .student-shell>.admin-main,.student-shell>.admin-main:has(.student-workspace){padding-bottom:110px}
+ .admin-shell aside{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+ .admin-shell .admin-nav-close{min-width:44px;min-height:44px}
+ .admin-shell aside nav a{min-height:44px}
+}
+@media(max-width:480px){
+ .admin-shell .admin-form,.admin-shell .form-grid{grid-template-columns:minmax(0,1fr)}
+ .admin-shell .admin-list>a{flex-wrap:wrap;gap:8px}
+ .admin-shell :is(input,select,textarea){font-size:16px}
+ .admin-shell .admin-title h1{font-size:28px}
+}
+.fm-auth,.admin-shell{font-family:DocumentSans,Arial,sans-serif}
+.fm-auth-card h1,.fm-auth-aside h2,.admin-shell .admin-title h1,.admin-shell h2{font-family:Fredoka,Arial,sans-serif}
+
+/* shared action hierarchy; leave sidebar and icon controls independent */
+:is(.admin-main,.learn-area,.fm-auth) .button {
+ display:inline-flex;align-items:center;justify-content:center;gap:8px;
+ min-height:44px;max-width:100%;padding:11px 18px;border:1px solid #C6F000;
+ border-radius:10px;background:#C6F000;color:#11120E;
+ font-size:14px;font-weight:600;line-height:1.4;text-align:center;text-decoration:none;
+ white-space:normal;cursor:pointer;
+}
+:is(.admin-main,.learn-area,.fm-auth) .button-secondary {
+ background:#FFFFFF;border-color:#D6D8CE;color:#11120E;
+}
+:is(.admin-main,.learn-area,.fm-auth) .button-danger {
+ background:#FFF5F4;border-color:#E9BFBA;color:#922B24;
+}
+:is(.admin-main,.learn-area,.fm-auth) .button:hover:not(:disabled) {
+ background:#B5DB00;border-color:#B5DB00;transform:none;box-shadow:none;
+}
+:is(.admin-main,.learn-area,.fm-auth) .button-secondary:hover:not(:disabled) {
+ background:#F3F4EF;border-color:#A8AD9D;
+}
+:is(.admin-main,.learn-area,.fm-auth) .button-danger:hover:not(:disabled) {
+ background:#FCE5E2;border-color:#CB8B83;color:#922B24!important;
+}
+:is(.admin-main,.learn-area,.fm-auth) .button:active:not(:disabled) {transform:translateY(1px)}
+:is(.admin-main,.learn-area,.fm-auth) .button:focus-visible {outline:2px solid #284E36;outline-offset:3px}
+:is(.admin-main,.learn-area,.fm-auth) .button:disabled {
+ opacity:1;background:#EBEDE5;border-color:#D9DDD1;color:#69705F;cursor:not-allowed;transform:none;box-shadow:none;
+}
+:is(.admin-main,.learn-area,.fm-auth) .button[aria-busy="true"] {cursor:progress}
+.fm-auth .fm-auth-form {grid-template-columns:minmax(0,1fr);width:100%}
+.fm-auth .fm-auth-form>* {min-width:0}
+.fm-auth .fm-auth-form .button {width:100%}
+.password-fields {display:grid;gap:8px;min-width:0}
+.password-input-wrap {position:relative;min-width:0}
+.fm-auth .password-input-wrap input {padding-right:70px}
+.password-visibility {position:absolute;inset:0 2px 0 auto;min-width:60px;min-height:44px;border:0;border-radius:8px;background:transparent;color:#284E36;font-size:13px;font-weight:600;cursor:pointer}
+.password-visibility:hover {background:#F3F4EF}
+.password-visibility:focus-visible {outline:2px solid #284E36;outline-offset:-3px}
+.password-hint {margin:0 0 8px;font-size:12px;line-height:1.6;color:#605E58}
+.password-feedback {min-height:20px;margin-bottom:0}
+.fm-auth :is(input,select,textarea) {width:100%;min-width:0;min-height:44px;font-size:16px}
+.fm-auth :is(.fm-auth-alt,.fm-auth-forgot) a {text-underline-offset:4px;text-decoration-thickness:1px}
+@media(prefers-reduced-motion:reduce) {
+ :is(.admin-main,.learn-area,.fm-auth) .button:active:not(:disabled) {transform:none}
+}
+.admin-shell .admin-title{margin:20px 0 28px}.admin-shell .admin-title h1{font-size:clamp(26px,3vw,38px);font-weight:700}
+.admin-shell aside{overflow-y:auto;max-height:100dvh}
+@media(min-width:900px){.admin-shell.is-collapsed aside{padding-inline:8px}.admin-shell.is-collapsed .admin-shell-email{display:none}}
+.certificate-document .certificate-footer{border:0;background:transparent;color:inherit}
+@media(max-width:899px){.admin-shell .admin-main{padding-top:24px}.admin-shell .admin-title{margin-top:0}}
+@media(max-width:600px){.invoice-lines th:first-child,.invoice-lines td:first-child{width:36%}.invoice-lines th:nth-child(3){width:8%}.invoice-lines td:not(:first-child){font-size:8px;white-space:nowrap;overflow-wrap:normal;padding-inline:2px}}
+@font-face{font-family:DocumentSans;src:url('/fonts/DocumentSans.ttf') format('truetype');font-display:swap}
+@font-face{font-family:DocumentSans;src:url('/fonts/DocumentSans-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
+@font-face{font-family:DocumentScript;src:url('/fonts/DocumentScript.ttf') format('truetype');font-display:swap}
+.print-document.invoice-document{background:#faf9ef;font-family:DocumentSans,Arial,sans-serif;color:#11120e;padding:clamp(22px,5vw,52px);border:0;max-width:840px;min-height:980px;display:flex;flex-direction:column}
+.invoice-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;border-bottom:1px solid #838378;padding-bottom:34px}
+.invoice-heading h2{font:700 clamp(48px,7vw,100px)/1 DocumentSans,Arial,sans-serif;letter-spacing:-.065em;margin:0}
+.invoice-heading>div{text-align:right;font-size:13px;line-height:1.6;max-width:220px;overflow-wrap:anywhere}
+.invoice-heading strong{display:block}
+.invoice-billed{border-bottom:1px solid #838378;padding:24px 0;font-size:15px}
+.invoice-billed p{line-height:1.5;margin:12px 0 0;overflow-wrap:anywhere}
+.invoice-lines-wrap{margin-top:100px}
+.invoice-lines{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed}
+.invoice-lines th,.invoice-lines td{padding:12px 6px;border-bottom:1px solid #838378;text-align:right;overflow-wrap:anywhere;vertical-align:top}
+.invoice-lines th{border-top:1px solid #838378}
+.invoice-lines th:first-child,.invoice-lines td:first-child{text-align:left;width:44%;padding-left:0}
+.invoice-lines th:nth-child(3){width:10%}
+.invoice-totals{margin:18px 0 28px auto;min-width:240px;font-size:16px;max-width:100%}
+.invoice-totals>div{display:flex;justify-content:space-between;gap:22px;padding:12px}
+.invoice-totals dt{font-weight:700}.invoice-totals dd{margin:0}
+.invoice-total{border-top:1px solid #838378;font-weight:700}
+.invoice-status{font-size:12px}.invoice-notes{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.invoice-footer{display:grid;grid-template-columns:1fr 1fr;gap:28px;border-block:1px solid #838378;padding:22px 0;margin-top:auto;font-size:14px}
+.invoice-footer p{white-space:pre-wrap;line-height:1.6;overflow-wrap:anywhere}
+.print-document.certificate-document{container-type:inline-size;position:relative;isolation:isolate;background:#f7f4ed;color:#272722;border:0;border-radius:0;max-width:1100px;padding:0 7% 5%;text-align:center;font-family:DocumentSans,Arial,sans-serif;overflow:hidden}
+.certificate-border{position:absolute;inset:5%;border:2px solid #ab8866;z-index:-1;border-radius:30px}
+.certificate-border:after{content:"";position:absolute;inset:6px;border:1px solid #ab8866;border-radius:24px}
+.certificate-brand{display:flex;flex-direction:column;justify-content:flex-end;gap:12px;width:29%;min-height:130px;margin:0 auto 32px;padding:28px 14px;background:#ab8866;color:#fff}
+.certificate-brand strong{font-size:clamp(10px,2cqw,20px);letter-spacing:.06em}.certificate-brand span{font:italic 11px Georgia,serif}
+.certificate-document h2{font:normal clamp(24px,8.6cqw,88px)/1.1 Georgia,serif;letter-spacing:.07em;margin:0}
+.certificate-subtitle{letter-spacing:.4em;font-size:clamp(8px,1.7cqw,16px);font-weight:700;margin:15px 0}
+.certificate-presented{font-style:italic;letter-spacing:.14em;font-size:clamp(10px,1.6cqw,15px)}
+.certificate-name{font-family:DocumentScript,DocumentSans,cursive;font-size:clamp(25px,6cqw,64px);line-height:1.35;border-bottom:1px solid #8f887a;margin:16px auto 20px;width:70%;overflow-wrap:anywhere}
+.certificate-course{font-size:clamp(11px,1.7cqw,17px);font-style:italic;margin:0 auto;max-width:85%}
+.certificate-facts{font-size:11px;color:#666257}
+.certificate-footer{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;align-items:center;margin-top:28px;padding-inline:4%}
+.certificate-signature{border-top:1px solid #8f887a;padding-top:12px;font-size:clamp(8px,1.4cqw,14px)}.certificate-signature strong,.certificate-signature span{display:block}.certificate-signature span{margin-top:5px}
+.certificate-seal{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:clamp(60px,12cqw,125px);aspect-ratio:1;margin:auto;background:#ab8866;border:5px double #e4d3b3;border-radius:50%;color:#fff;font-size:clamp(7px,1.1cqw,11px);letter-spacing:.08em}
+.certificate-verification{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:clamp(7px,1cqw,11px);overflow-wrap:anywhere}
+.certificate-verification svg{width:clamp(40px,8cqw,78px);height:auto}.certificate-revoked{color:#a32323;font-weight:700;font-size:13px}
+.admin-nav-group{display:grid;gap:3px}.admin-nav-label{font-size:10px;color:#b8baad;letter-spacing:.13em;text-transform:uppercase;padding:14px 12px 4px;margin:0}
+.admin-shell aside nav{gap:4px}.admin-shell aside nav a{min-height:40px}.admin-shell aside nav a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-shell.is-collapsed .admin-nav-label,.admin-shell.is-collapsed aside nav a span{display:none}
+.admin-shell.is-collapsed .admin-nav-group+.admin-nav-group{border-top:1px solid #33352a;margin-top:8px;padding-top:8px}
+.student-bottom-nav{display:none}
+.security-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}.security-grid article{border:1px solid var(--border);padding:24px;border-radius:14px;background:var(--background)}
+.mfa-qr{width:220px;max-width:100%;margin:20px auto}.mfa-qr svg{width:100%;height:auto}.mfa-secret{display:block;overflow-wrap:anywhere;padding:12px;font-size:13px}
+/* Checkout: order summary left, payment right, both aligned at the top. */
+.checkout-layout{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,60fr);gap:clamp(24px,3vw,44px);align-items:start;width:min(1120px,calc(100% - 10vw));margin:0 auto;padding:clamp(56px,8vh,96px) 0 96px}
+.checkout-summary,.checkout-panel{padding:26px;border:1px solid var(--border);border-radius:16px;background:var(--card)}
+.checkout-summary{display:grid;grid-template-columns:1fr;gap:16px;align-content:start}
+.checkout-summary img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px}
+.checkout-summary h1{margin:0;font-size:clamp(1.35rem,2.4vw,1.75rem);line-height:1.15;letter-spacing:-.03em}
+.checkout-summary .eyebrow{margin:0}
+.checkout-summary-copy{margin:0;color:var(--muted-foreground);font-size:.9rem;line-height:1.55}
+.checkout-summary-meta{margin:0;color:var(--muted);font-size:.8rem}
+.checkout-totals{margin:4px 0 0;padding-top:14px;border-top:1px solid var(--border)}
+.checkout-totals>div{display:flex;justify-content:space-between;gap:20px;padding-block:9px;font-size:.9rem}
+.checkout-totals dt{color:var(--muted)}
+.checkout-totals dd{margin:0}
+.checkout-totals .checkout-total{margin-top:5px;padding-top:14px;border-top:1px solid var(--border);font-weight:600;color:var(--foreground)}
+.checkout-panel{display:grid;gap:18px;align-content:start}
+.checkout-panel h2{margin:0;font-size:clamp(1.5rem,2.6vw,2rem);line-height:1.1;letter-spacing:-.045em}
+.checkout-lede{margin:0;color:var(--muted-foreground);font-size:.95rem;line-height:1.55}
+.checkout-panel .secure-note{margin:0}
+.checkout-support{margin:0}
+
+/* Stepper: completed, current and upcoming are distinct in both mark and text. */
+.checkout-stepper{display:flex;flex-wrap:wrap;gap:12px 26px;margin:0;padding:0;list-style:none;font-size:.78rem;color:var(--muted)}
+.checkout-stepper li{display:flex;align-items:center;gap:9px}
+.checkout-stepper li[data-state="current"]{color:var(--foreground);font-weight:600}
+.checkout-stepper-mark{display:grid;place-items:center;width:22px;height:22px;flex:0 0 22px;border:1px solid var(--border);border-radius:50%;font-size:.7rem;line-height:1}
+.checkout-stepper li[data-state="done"] .checkout-stepper-mark{background:var(--site-accent,#9BC300);border-color:var(--site-accent,#9BC300);color:#101400}
+.checkout-stepper li[data-state="current"] .checkout-stepper-mark{border-color:var(--foreground);color:var(--foreground)}
+
+/* Single column: email, then coupon, then the amount, then the pay action. */
+.checkout-panel .checkout-form{margin:0;display:grid;grid-template-columns:1fr;gap:20px;max-width:none}
+.checkout-field{display:grid;gap:7px;margin:0;color:var(--muted-foreground);font-size:.78rem}
+.checkout-field-note{color:var(--muted)}
+.checkout-field input{width:100%;min-height:44px;padding:10px;color:var(--foreground);background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:15px}
+.checkout-field small{color:var(--muted);font-size:.74rem}
+.checkout-coupon{display:flex;gap:10px}
+.checkout-coupon input{flex:1;min-width:0}
+.checkout-coupon .button{flex:0 0 auto;min-height:44px}
+.checkout-coupon-note{margin:0;color:var(--muted-foreground);font-size:.8rem}
+.checkout-coupon-remove{justify-self:start;padding:0;background:none;border:0;color:var(--muted-foreground);font-size:.78rem;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.checkout-payable{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;padding:16px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.checkout-payable>span{color:var(--muted);font-size:.82rem}
+.checkout-payable>strong{font-size:1.35rem;letter-spacing:-.03em}
+.checkout-payable>small{width:100%;color:var(--muted-foreground);font-size:.78rem}
+.checkout-panel .checkout-pay{width:100%;min-height:48px}
+@media(max-width:899px){
+ .admin-shell.is-collapsed .admin-nav-label{display:block}.admin-shell.is-collapsed aside nav a span{display:inline}
+ .student-shell .admin-main{padding-bottom:100px}
+ .student-bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:1000;display:grid;grid-template-columns:repeat(5,1fr);background:#11120e;padding:8px 4px calc(8px + env(safe-area-inset-bottom));border-top:1px solid #33352a}
+ .student-bottom-nav a{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;min-height:48px;color:#c9cbc0;font-size:10px;text-decoration:none}
+ .student-bottom-nav a[aria-current=page]{color:#c6f000}.student-bottom-nav svg{width:19px;height:19px}
+ .checkout-layout{grid-template-columns:1fr;gap:18px;padding:28px 0 72px}.checkout-summary,.checkout-panel{padding:22px}
+}
+@media(max-width:600px){.invoice-heading{flex-wrap:wrap}.invoice-heading>div{text-align:left}.invoice-lines-wrap{margin-top:50px}.invoice-lines{font-size:10px}.invoice-footer{font-size:12px;gap:16px}.print-document.invoice-document{min-height:780px}.certificate-brand{min-height:80px;margin-bottom:20px;padding:12px 6px}.certificate-brand span{font-size:7px}.certificate-footer{gap:8px;margin-top:18px}.certificate-facts{font-size:8px}.certificate-name{margin-block:10px}}
+@media print{
+ .invoice-document{width:100%;max-width:none!important;min-height:260mm!important;box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .certificate-document{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .invoice-lines tr{break-inside:avoid}.invoice-lines thead{display:table-header-group}
+ .student-bottom-nav{display:none!important}
+}

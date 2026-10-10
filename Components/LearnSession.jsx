@@ -18,7 +18,7 @@ export default function LearnSession({ signOut }) {
     try {
       if ("caches" in window) {
         const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
+        await Promise.all(keys.filter(key => !key.startsWith("avc-public-shell-")).map((key) => caches.delete(key)));
       }
       navigator.serviceWorker?.controller?.postMessage("purge-cache");
     } catch {

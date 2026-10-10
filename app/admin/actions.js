@@ -1,4 +1,5 @@
 "use server";
+import { couponDate } from "@/lib/coupon-dates";
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -6,11 +7,11 @@ import { createSupabaseServerClient, createSupabaseServiceClient, getAdminUser }
 import { bachsSettingsSchema, contactSettingsSchema, emailSettingsSchema, seoSettingsSchema, videoSchema } from "@/lib/validation";
 import { getVideoSource } from "@/lib/video-source";
 import { getSiteContent } from "@/lib/data/site";
-import { clearDirectAdminSession, createDirectAdminSession, hasDirectAdminAuth, verifyDirectAdminCredentials } from "@/lib/admin-session";
-import { getStoredBachsSettings, getStoredEmailSettings } from "@/lib/data/settings";
-import { canEncryptSecrets, canEncryptSmtp, encryptSecretSettings, encryptSmtpSettings } from "@/lib/email/crypto";
+import { clearDirectAdminSession } from "@/lib/admin-session";
+import { getStoredBachsSettings } from "@/lib/data/settings";
+import { canEncryptSecrets, encryptSecretSettings } from "@/lib/email/crypto";
 import { sendCourseConfirmation, sendEnquiryNotification, sendSettingsTestEmail } from "@/lib/email/delivery";
-import { recordRefund, requestRefund, testBachsConnection } from "@/lib/payments/provider";
+import { recordRefund, requestRefund, testBachsConnection, reconcileOrder, reconcilePendingOrders } from "@/lib/payments/provider";
 import { getCourseVideoSource } from "@/lib/course-video-source";
 import { checkExternalCourseVideo } from "@/lib/course-video-validation";
 import { getCoursePublishIssues } from "@/lib/data/course-publishing";
@@ -50,10 +51,11 @@ export async function saveInvoice(formData) {
 }
 export async function updateInvoiceStatus(formData) {
   await admin(); const supabase = await createSupabaseServerClient(); const id = String(formData.get("id") || ""); const status = String(formData.get("status") || "");
-  if (!id || !["draft", "sent", "accepted", "declined", "paid", "void"].includes(status)) redirect("/admin/invoices?error=Unknown+status");
+  if (!id || !["draft", "sent", "accepted", "declined", "void"].includes(status)) redirect("/admin/invoices?error=Unknown+status");
   const now = new Date().toISOString(); const update = { status, updated_at: now };
   if (status === "accepted") { update.accepted_at = now; update.accepted_name = String(formData.get("acceptedName") || "").trim() || "Recorded by admin"; }
-  if (status === "paid") update.paid_at = now;
+  const { data: existing } = await supabase.from("invoices").select("status").eq("id", id).maybeSingle();
+  if (!existing || existing.status === "paid") redirect("/admin/invoices?error=Settled+documents+cannot+be+changed");
   const { error } = await supabase.from("invoices").update(update).eq("id", id);
   if (error) redirect(`/admin/invoices?error=${encodeURIComponent("That status could not be saved.")}`);
   revalidatePath("/admin/invoices"); redirect("/admin/invoices?saved=1");
@@ -61,19 +63,27 @@ export async function updateInvoiceStatus(formData) {
 // most client invoices settle by transfer, so recording one produces the same
 // receipt the gateway webhook would have produced
 export async function markInvoicePaid(formData) {
-  await admin(); const supabase = await createSupabaseServerClient(); const id = String(formData.get("id") || "");
-  const channel = String(formData.get("channel") || "Bank transfer").trim(); const reference = String(formData.get("reference") || "").trim();
+  await admin();
+  const supabase = createSupabaseServiceClient(), id = String(formData.get("id") || "");
+  const channel = String(formData.get("channel") || "Bank transfer").trim(), reference = String(formData.get("reference") || "").trim();
   const { data: invoice } = await supabase.from("invoices").select("*").eq("id", id).maybeSingle();
   if (!invoice) redirect("/admin/invoices?error=Document+not+found");
-  if (invoice.status === "paid") redirect("/admin/invoices?error=That+document+is+already+settled");
-  const now = new Date().toISOString();
-  const { error } = await supabase.from("invoices").update({ status: "paid", paid_at: now, payment_channel: channel, payment_reference: reference || null, updated_at: now }).eq("id", invoice.id);
-  if (error) redirect(`/admin/invoices?error=${encodeURIComponent("The payment could not be recorded.")}`);
-  await issueInvoiceReceipt(supabase, invoice, { channel, reference, amountMinor: Number(invoice.total_minor) });
-  revalidatePath("/admin/invoices"); if (invoice.access_token) revalidatePath(`/q/${invoice.access_token}`);
-  await recordActivity({ title: "Payment recorded", description: `${channel} for ${invoice.number}`, href: "/admin/invoices", entity: "invoice", entityId: invoice.id }); redirect("/admin/invoices?paid=1");
+  try { await issueInvoiceReceipt(supabase, invoice, { channel, reference, amountMinor: Number(invoice.total_minor) }); }
+  catch { redirect("/admin/invoices?error=Payment+and+receipt+could+not+be+saved.+Please+try+again."); }
+  revalidatePath("/admin/invoices"); revalidatePath("/q/" + invoice.access_token);
+  await recordActivity({ title: "Payment recorded", description: channel + " for " + invoice.number, href: "/admin/invoices", entity: "invoice", entityId: id });
+  redirect("/admin/invoices?paid=1");
 }
-export async function login(formData) { const email = String(formData.get("email") || ""); const password = String(formData.get("password") || ""); if (hasDirectAdminAuth()) { if (!verifyDirectAdminCredentials(email, password)) redirect("/admin/login?error=Invalid+email+or+password"); await createDirectAdminSession(email); redirect("/admin"); } const supabase = await createSupabaseServerClient(); if (!supabase) return redirect("/admin/login?error=Admin+sign-in+is+not+configured"); const { error } = await supabase.auth.signInWithPassword({ email, password }); if (error) redirect("/admin/login?error=Invalid+email+or+password"); redirect("/admin"); }
+
+export async function login(formData) {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) redirect("/admin/login?error=Sign-in+is+unavailable");
+  const { error } = await supabase.auth.signInWithPassword({ email: String(formData.get("email") || "").trim(), password: String(formData.get("password") || "") });
+  if (error) redirect("/admin/login?error=Invalid+email+or+password");
+  const { getAdminIdentity } = await import("@/lib/supabase/server");
+  if (!await getAdminIdentity()) { await supabase.auth.signOut(); redirect("/admin/login?error=Administrator+access+is+required"); }
+  redirect("/admin");
+}
 export async function logout() { await clearDirectAdminSession(); const supabase = await createSupabaseServerClient(); await supabase?.auth.signOut(); redirect("/admin/login"); }
 function jsonObject(value) { try { const parsed = JSON.parse(value || "{}"); return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } }
 function storageKeys(value) { try { const parsed = JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed.filter((key) => typeof key === "string" && /^[A-Za-z0-9/_-]+\.webp$/.test(key) && !key.includes("..")) : []; } catch { return []; } }
@@ -177,10 +187,16 @@ export async function saveSiteContent(formData) { await admin(); const value = {
 
 export async function reorderVideos(videoIds) {
   await admin();
-  if (!Array.isArray(videoIds) || !videoIds.length || videoIds.length > 500 || videoIds.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) return { ok: false, error: "A complete valid project order is required." };
+  if (!Array.isArray(videoIds) || !videoIds.length || videoIds.length > 500 || new Set(videoIds).size !== videoIds.length || videoIds.some((id) => typeof id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))) return { ok: false, error: "A complete valid project order is required." };
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.rpc("reorder_videos", { video_ids: videoIds });
-  if (error) return { ok: false, error: "The order could not be saved. Apply the latest database migration and try again." };
+  if (error) {
+    console.error("Portfolio reorder failed", { code: error.code || "unknown" });
+    if (["PGRST202", "42883", "42704"].includes(error.code)) return { ok: false, error: "Portfolio ordering needs a database update. Run production-portfolio-order-repair.sql in the live Supabase project, then try again." };
+    if (error.code === "42501" || error.message === "unauthorised") return { ok: false, error: "Your administrator verification has expired. Sign in again and verify your authenticator code before saving." };
+    if (error.code === "22023" || ["complete unique video order required", "unknown video in order"].includes(error.message)) return { ok: false, error: "The project list changed. Reload this page and rearrange the latest list of projects." };
+    return { ok: false, error: "Portfolio order could not be saved. Your changes are still here; please try again." };
+  }
   revalidatePath("/"); revalidatePath("/work"); revalidatePath("/admin/videos");
   return { ok: true };
 }
@@ -254,18 +270,12 @@ export async function saveSeoSettings(formData) {
 export async function saveEmailSettings(formData) {
   await admin();
   const parsed = emailSettingsSchema.safeParse({
-    ...settingValues(formData, ["host", "port", "username", "password", "fromName", "fromEmail", "recipientEmail"]),
+    ...settingValues(formData, ["fromName", "fromEmail", "recipientEmail"]),
     enabled: formData.get("enabled") === "on",
-    secure: formData.get("secure") === "on",
-    clearPassword: formData.get("clearPassword") === "on",
   });
   if (!parsed.success) redirect(`/admin/settings/email?error=${encodeURIComponent(parsed.error.issues[0].message)}`);
-  const existing = await getStoredEmailSettings();
-  const { password: replacement, clearPassword, ...value } = parsed.data;
-  if (!canEncryptSmtp()) redirect("/admin/settings/email?error=SMTP+encryption+is+not+configured");
-  if (value.enabled && (!value.host || !value.fromEmail || !value.recipientEmail)) redirect("/admin/settings/email?error=Complete+the+host%2C+from+email+and+recipient+before+enabling+delivery");
-  value.password = clearPassword ? "" : replacement || existing.password || "";
-  await saveSetting("email", { sealed: encryptSmtpSettings(value) });
+  if (parsed.data.enabled && (!parsed.data.fromEmail || !parsed.data.recipientEmail)) redirect("/admin/settings/email?error=Complete+the+from+email+and+recipient+before+enabling+delivery");
+  await saveSetting("email", parsed.data);
   redirect("/admin/settings/email?saved=1");
 }
 
@@ -311,7 +321,11 @@ function lineList(value) { return String(value || "").split(/\r?\n/).map((item) 
 function moneyToMinor(value) { const amount = Number(value); return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) : null; }
 function validSlug(value) { return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value); }
 
+async function courseWorkspaceRequired() { await admin(); redirect("/admin/courses?error=Reopen+the+course+workspace+to+save+changes+safely"); }
+
 export async function saveCourse(formData) {
+  await courseWorkspaceRequired();
+
   await admin(); const supabase = await createSupabaseServerClient();
   const id = String(formData.get("id") || ""); const step = String(formData.get("step") || "details"); let record = { updated_at: new Date().toISOString() }; let slug = ""; let coverImageUrl = "";
   if (step === "details") {
@@ -336,6 +350,8 @@ export async function saveCourse(formData) {
 }
 
 export async function saveCourseSection(formData) {
+  await courseWorkspaceRequired();
+
   await admin(); const supabase = await createSupabaseServerClient(); const courseId = String(formData.get("courseId") || ""); const sectionId = String(formData.get("id") || ""); const title = String(formData.get("title") || "").trim(); const destination = `/admin/courses/${courseId}/curriculum`; if (!title) redirect(`${destination}?error=${encodeURIComponent("Section title is required.")}`);
   if (sectionId) { const { error } = await supabase.from("course_sections").update({ title, description: String(formData.get("description") || "").trim(), updated_at: new Date().toISOString() }).eq("id", sectionId); if (error) redirect(`${destination}?error=${encodeURIComponent("The section could not be updated.")}`); revalidatePath(destination); redirect(`${destination}?saved=section`); }
   const { data: last } = await supabase.from("course_sections").select("display_order").eq("course_id", courseId).order("display_order", { ascending: false }).limit(1).maybeSingle();
@@ -344,6 +360,8 @@ export async function saveCourseSection(formData) {
 }
 
 export async function saveCourseLesson(formData) {
+  await courseWorkspaceRequired();
+
   await admin(); const service = createSupabaseServiceClient(); const courseId = String(formData.get("courseId") || ""); const sectionId = String(formData.get("sectionId") || ""); const targetSectionId = String(formData.get("targetSectionId") || sectionId); const lessonId = String(formData.get("id") || ""); const title = String(formData.get("title") || "").trim(); const slug = String(formData.get("slug") || "").trim(); const destination = `/admin/courses/${courseId}/curriculum`; if (!title || !validSlug(slug)) redirect(`${destination}?error=${encodeURIComponent("Lesson title and lowercase slug are required.")}`);
   const { data: targetSection } = await service.from("course_sections").select("id").eq("id", targetSectionId).eq("course_id", courseId).maybeSingle();
   if (!targetSection) redirect(`${destination}?error=${encodeURIComponent("Choose a section that belongs to this course.")}`);
@@ -373,10 +391,16 @@ export async function saveCourseLesson(formData) {
   revalidatePath(destination); revalidatePath(`/courses`, "layout"); redirect(`${destination}?saved=lesson`);
 }
 
-export async function deleteCourseSection(formData) { await admin(); const supabase = await createSupabaseServerClient(); const courseId = String(formData.get("courseId") || ""); const destination = `/admin/courses/${courseId}/curriculum`; const { error } = await supabase.from("course_sections").delete().eq("id", String(formData.get("id") || "")); if (error) redirect(`${destination}?error=${encodeURIComponent("The section could not be deleted.")}`); revalidatePath(destination); redirect(`${destination}?saved=deleted`); }
-export async function deleteCourseLesson(formData) { await admin(); const service = createSupabaseServiceClient(); const courseId = String(formData.get("courseId") || ""); const lessonId = String(formData.get("id") || ""); const destination = `/admin/courses/${courseId}/curriculum`; const [{ data: media = [] }, { data: resources = [] }] = await Promise.all([service.from("media_assets").select("bucket,storage_key").eq("lesson_id", lessonId).eq("course_id", courseId), service.from("course_resources").select("storage_key").eq("lesson_id", lessonId).eq("course_id", courseId)]); const { error } = await service.from("course_lessons").delete().eq("id", lessonId).eq("course_id", courseId); if (error) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be deleted.")}`); await Promise.all([...media.map((asset) => service.storage.from(asset.bucket).remove([asset.storage_key])), ...resources.map((item) => service.storage.from("course-resources").remove([item.storage_key]))]); revalidatePath(destination); redirect(`${destination}?saved=deleted`); }
+export async function deleteCourseSection(formData) {
+  await courseWorkspaceRequired();
+ await admin(); const supabase = await createSupabaseServerClient(); const courseId = String(formData.get("courseId") || ""); const destination = `/admin/courses/${courseId}/curriculum`; const { error } = await supabase.from("course_sections").delete().eq("id", String(formData.get("id") || "")); if (error) redirect(`${destination}?error=${encodeURIComponent("The section could not be deleted.")}`); revalidatePath(destination); redirect(`${destination}?saved=deleted`); }
+export async function deleteCourseLesson(formData) {
+  await courseWorkspaceRequired();
+ await admin(); const service = createSupabaseServiceClient(); const courseId = String(formData.get("courseId") || ""); const lessonId = String(formData.get("id") || ""); const destination = `/admin/courses/${courseId}/curriculum`; const [{ data: media = [] }, { data: resources = [] }] = await Promise.all([service.from("media_assets").select("bucket,storage_key").eq("lesson_id", lessonId).eq("course_id", courseId), service.from("course_resources").select("storage_key").eq("lesson_id", lessonId).eq("course_id", courseId)]); const { error } = await service.from("course_lessons").delete().eq("id", lessonId).eq("course_id", courseId); if (error) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be deleted.")}`); await Promise.all([...media.map((asset) => service.storage.from(asset.bucket).remove([asset.storage_key])), ...resources.map((item) => service.storage.from("course-resources").remove([item.storage_key]))]); revalidatePath(destination); redirect(`${destination}?saved=deleted`); }
 
 export async function duplicateCourseLesson(formData) {
+  await courseWorkspaceRequired();
+
   await admin(); const service = createSupabaseServiceClient(); const courseId = String(formData.get("courseId") || ""); const id = String(formData.get("id") || ""); const destination = `/admin/courses/${courseId}/curriculum`;
   const { data: lesson } = await service.from("course_lessons").select("*").eq("id", id).eq("course_id", courseId).maybeSingle(); if (!lesson) redirect(`${destination}?error=${encodeURIComponent("The lesson could not be found.")}`);
   const { data: last } = await service.from("course_lessons").select("display_order").eq("section_id", lesson.section_id).order("display_order", { ascending: false }).limit(1).maybeSingle();
@@ -389,6 +413,8 @@ export async function duplicateCourseLesson(formData) {
 }
 
 export async function updateCoursePublication(formData) {
+  await courseWorkspaceRequired();
+
   await admin(); const service = createSupabaseServiceClient(); const courseId = String(formData.get("courseId") || ""); const intent = String(formData.get("intent") || "publish"); const destination = `/admin/courses/${courseId}/edit?step=publish`;
   if (["publish", "schedule"].includes(intent)) { const issues = await getCoursePublishIssues(courseId); if (issues.length) redirect(`${destination}&error=${encodeURIComponent(issues[0])}`); }
   const now = new Date().toISOString(); let record;
@@ -401,6 +427,8 @@ export async function updateCoursePublication(formData) {
 }
 
 export async function duplicateCourse(formData) {
+  await courseWorkspaceRequired();
+
   await admin(); const service = createSupabaseServiceClient(); const id = String(formData.get("courseId") || ""); const { data: original } = await service.from("courses").select("*").eq("id", id).is("deleted_at", null).maybeSingle(); if (!original) redirect("/admin/courses?error=Course+not+found");
   const { id: ignored, created_at: created, updated_at: updated, published_at: published, scheduled_for: scheduled, ...copy } = original; void ignored; void created; void updated; void published; void scheduled; copy.title = `${original.title} copy`; copy.slug = `${original.slug}-copy-${Date.now().toString(36)}`; copy.status = "draft"; copy.featured = false; copy.duplicated_from = id; const { data: createdCourse, error } = await service.from("courses").insert(copy).select("id").single(); if (error) redirect("/admin/courses?error=Course+could+not+be+duplicated");
   const { data: sections = [] } = await service.from("course_sections").select("*").eq("course_id", id).order("display_order");
@@ -409,10 +437,14 @@ export async function duplicateCourse(formData) {
 }
 
 export async function deleteCourse(formData) {
+  await courseWorkspaceRequired();
+
   await admin(); const service = createSupabaseServiceClient(); const id = String(formData.get("courseId") || ""); const { error } = await service.from("courses").update({ deleted_at: new Date().toISOString(), status: "archived", featured: false }).eq("id", id); if (error) redirect("/admin/courses?error=Course+could+not+be+deleted"); revalidatePath("/"); revalidatePath("/courses"); revalidatePath("/admin/courses"); redirect("/admin/courses?saved=deleted");
 }
 
 export async function reorderCurriculum(kind, parentId, ids, courseId = parentId) {
+  await courseWorkspaceRequired();
+
   await admin(); if (!Array.isArray(ids) || ids.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) return { ok: false, error: "Invalid curriculum order." };
   const supabase = await createSupabaseServerClient();
   const rpc = kind === "sections"
@@ -424,6 +456,8 @@ export async function reorderCurriculum(kind, parentId, ids, courseId = parentId
 }
 
 export async function deleteCourseResource(formData) {
+  await courseWorkspaceRequired();
+
   await admin(); const service = createSupabaseServiceClient(); const id = String(formData.get("id") || ""); const courseId = String(formData.get("courseId") || ""); const destination = formData.get("returnTo") === "materials" ? `/admin/courses/${courseId}/materials` : `/admin/courses/${courseId}/curriculum`; const { data, error: lookupError } = await service.from("course_resources").select("storage_key").eq("id", id).eq("course_id", courseId).maybeSingle(); if (lookupError || !data) redirect(`${destination}?error=${encodeURIComponent("The resource could not be found.")}`); const { error } = await service.from("course_resources").delete().eq("id", id).eq("course_id", courseId); if (error) redirect(`${destination}?error=${encodeURIComponent("The resource could not be removed.")}`); if (data.storage_key) await service.storage.from("course-resources").remove([data.storage_key]); revalidatePath(destination); redirect(`${destination}?saved=deleted`);
 }
 
@@ -451,7 +485,13 @@ export async function saveCarouselSettings(formData) {
 }
 
 export async function saveCoupon(formData) {
-  await admin(); const supabase = await createSupabaseServerClient(); const code = String(formData.get("code") || "").trim().toUpperCase(); const value = Number(formData.get("discountValue")); const type = String(formData.get("discountType") || "percent"); if (!code || !Number.isFinite(value) || value <= 0 || (type === "percent" && value > 100)) redirect(`/admin/coupons?error=${encodeURIComponent("Enter a coupon code and a valid discount. Percent discounts cannot exceed 100.")}`); const { error } = await supabase.from("coupons").insert({ code, discount_type: type, discount_value: value, currency: String(formData.get("currency") || "NGN").toUpperCase(), max_redemptions: Number(formData.get("maxRedemptions")) || null, starts_at: String(formData.get("startsAt") || "") || null, expires_at: String(formData.get("expiresAt") || "") || null, enabled: formData.get("enabled") === "on" }); if (error) redirect(`/admin/coupons?error=${encodeURIComponent("The coupon could not be created. Make sure its code is unique.")}`); revalidatePath("/admin/coupons"); redirect("/admin/coupons?saved=created");
+  await admin();
+  let startsAt, expiresAt;
+  try {
+    startsAt = couponDate(formData.get("startsAt")); expiresAt = couponDate(formData.get("expiresAt"));
+    if (startsAt && expiresAt && new Date(expiresAt) <= new Date(startsAt)) throw new Error("Coupon expiry must be after its start date.");
+  } catch (error) { redirect("/admin/coupons?error=" + encodeURIComponent(error.message)); }
+  const supabase = await createSupabaseServerClient(); const code = String(formData.get("code") || "").trim().toUpperCase(); const value = Number(formData.get("discountValue")); const type = String(formData.get("discountType") || "percent"); if (!code || !Number.isFinite(value) || value <= 0 || (type === "percent" && value > 100)) redirect(`/admin/coupons?error=${encodeURIComponent("Enter a coupon code and a valid discount. Percent discounts cannot exceed 100.")}`); const { error } = await supabase.from("coupons").insert({ code, discount_type: type, discount_value: value, currency: String(formData.get("currency") || "NGN").toUpperCase(), max_redemptions: Number(formData.get("maxRedemptions")) || null, starts_at: startsAt, expires_at: expiresAt, enabled: formData.get("enabled") === "on" }); if (error) redirect(`/admin/coupons?error=${encodeURIComponent("The coupon could not be created. Make sure its code is unique.")}`); revalidatePath("/admin/coupons"); redirect("/admin/coupons?saved=created");
 }
 
 export async function toggleCoupon(formData) { await admin(); const supabase = await createSupabaseServerClient(); const { error } = await supabase.from("coupons").update({ enabled: formData.get("enabled") === "true", updated_at: new Date().toISOString() }).eq("id", String(formData.get("id") || "")); if (error) redirect(`/admin/coupons?error=${encodeURIComponent("The coupon status could not be changed.")}`); revalidatePath("/admin/coupons"); redirect("/admin/coupons?saved=updated"); }
@@ -474,9 +514,43 @@ export async function refundOrder(formData) {
   revalidatePath("/admin/orders"); revalidatePath("/admin/payments");
 }
 
+// Admins ask Bachs directly rather than trusting the local row: the provider is
+// the authority, and this is the sanctioned way to move a pending order.
+export async function verifyOrderPayment(formData) {
+  await admin();
+  const service = createSupabaseServiceClient();
+  const orderId = String(formData.get("orderId") || "");
+  const { data: order } = await service.from("orders").select("id,reference,checkout_id,gateway,payment_status").eq("id", orderId).maybeSingle();
+  if (!order) throw new Error("Order not found.");
+  const result = await reconcileOrder(order);
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin/payments");
+  const params = new URLSearchParams({ checked: String(result.status || order.payment_status), reference: order.reference });
+  if (result.error) params.set("notice", result.error);
+  redirect(`/admin/orders?${params.toString()}`);
+}
+
+export async function reconcileStalePayments() {
+  await admin();
+  const report = await reconcilePendingOrders({ olderThanMinutes: 15, limit: 25 });
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin/payments");
+  const settled = report.results.filter((item) => item.changed).length;
+  const stillPending = report.results.length - settled;
+  const params = new URLSearchParams({ checked: "batch", reference: `${settled} confirmed`, notice: settled ? `${settled} order${settled === 1 ? "" : "s"} confirmed with Bachs${stillPending ? `, ${stillPending} still awaiting confirmation` : ""}.` : report.checked ? `Bachs has not confirmed any of the ${report.checked} pending orders checked.` : "No pending payments older than 15 minutes." });
+  redirect(`/admin/orders?${params.toString()}`);
+}
+
 export async function grantCourseAccess(formData) {
-  await admin(); const service = createSupabaseServiceClient(); const email = String(formData.get("email") || "").trim().toLowerCase(); const courseId = String(formData.get("courseId") || ""); const destination = `/admin/courses/${courseId}/students`; const { data, error: usersError } = await service.auth.admin.listUsers({ page: 1, perPage: 1000 }); if (usersError) redirect(`${destination}?error=${encodeURIComponent("Student accounts could not be loaded.")}`); const user = data?.users?.find((item) => item.email?.toLowerCase() === email); if (!user) redirect(`${destination}?error=${encodeURIComponent("No student account uses that email.")}`); const { error } = await service.from("enrolments").upsert({ student_id: user.id, course_id: courseId, access_source: "manual", active: true, revoked_at: null }, { onConflict: "student_id,course_id" }); if (error) redirect(`${destination}?error=${encodeURIComponent("Course access could not be granted.")}`); revalidatePath(destination); redirect(`${destination}?saved=granted`);
+  await admin(); const service = createSupabaseServiceClient(); const email = String(formData.get("email") || "").trim().toLowerCase(); const courseId = String(formData.get("courseId") || ""); const destination = `/admin/courses/${courseId}/students`; const { data, error: usersError } = await service.auth.admin.listUsers({ page: 1, perPage: 1000 }); if (usersError) redirect(`${destination}?error=${encodeURIComponent("Student accounts could not be loaded.")}`); const user = data?.users?.find((item) => item.email?.toLowerCase() === email); if (!user) redirect(`${destination}?error=${encodeURIComponent("No student account uses that email.")}`); const { error } = await service.from("enrolments").upsert({ student_id: user.id, course_id: courseId, access_source: "manual", ...(formData.get("paidApproved") === "on" ? { paid_approved: true } : {}), active: true, revoked_at: null }, { onConflict: "student_id,course_id" }); if (error) redirect(`${destination}?error=${encodeURIComponent("Course access could not be granted.")}`); revalidatePath(destination); redirect(`${destination}?saved=granted`);
 }
 export async function revokeCourseAccess(formData) { const actor = await admin(); const service = createSupabaseServiceClient(); const id = String(formData.get("id") || ""); const courseId = String(formData.get("courseId") || ""); const destination = `/admin/courses/${courseId}/students`; const { error } = await service.from("enrolments").update({ active: false, revoked_at: new Date().toISOString(), granted_by: actor.id === "direct-admin" ? null : actor.id }).eq("id", id); if (error) redirect(`${destination}?error=${encodeURIComponent("Course access could not be revoked.")}`); revalidatePath(destination); redirect(`${destination}?saved=revoked`); }
-
-
+export async function saveDocumentSettings(formData) {
+  await admin();
+  const keys = ["businessName", "academyName", "email", "phone", "address", "paymentInstructions", "signerName", "signerTitle"];
+  const value = Object.fromEntries(keys.map(key => [key, String(formData.get(key) || "").trim().slice(0, key === "paymentInstructions" ? 500 : 150)]));
+  if (!value.businessName || !value.academyName) redirect("/admin/settings/documents?error=Enter+the+business+and+academy+names");
+  await saveSetting("documents", value);
+  revalidatePath("/", "layout");
+  redirect("/admin/settings/documents?saved=1");
+}

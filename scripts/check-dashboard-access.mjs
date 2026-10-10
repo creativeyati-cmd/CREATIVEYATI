@@ -1,0 +1,11 @@
+﻿import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const source=fs.readFileSync('lib/data/dashboard.js','utf8').replace(/^import .*;\r?$/gm,'').replaceAll('export async function','async function');
+const api=new Function('getAdminUser',source+';return {readDashboardRows,getAdminWorkspace};')(async()=>null);
+const records=Array.from({length:1101},(_,id)=>({id}));
+let calls=0;
+const rows=await api.readDashboardRows(()=>({range:async(start,end)=>{calls++;return {data:records.slice(start,end+1),error:null};}}));
+assert.equal(rows.length,1101);assert.equal(calls,3);
+await assert.rejects(()=>api.readDashboardRows(()=>({range:async()=>({data:null,error:{message:'failed'}})})),/could not be loaded/);
+await assert.rejects(()=>api.getAdminWorkspace(),/Administrator access required/);
+console.log('Pagination beyond 1000 rows, fail-closed data errors, and admin guard passed.');

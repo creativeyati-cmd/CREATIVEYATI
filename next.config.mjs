@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() { return [{ source: "/sw.js", headers: [{key:"Cache-Control",value:"no-cache, no-store, must-revalidate"},{key:"Service-Worker-Allowed",value:"/"}] }]; },
+  experimental: { serverActions: { bodySizeLimit: "2mb" } },
+  outputFileTracingIncludes: { "/api/**": ["./public/fonts/*.ttf"] },
   turbopack: { root: process.cwd() },
   images: {
     remotePatterns: [

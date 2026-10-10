@@ -1,3 +1,5 @@
+import { Input, Select, Textarea } from "@/Components/FormControls";
+import { PageHeader } from "@/Components/DashboardPageShell";
 import Link from "next/link";
 import { retryEnquiryNotification, updateEnquiry } from "@/app/admin/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -44,7 +46,7 @@ export default async function Enquiries({ searchParams }) {
   }
 
   return <>
-    <div className="admin-title"><p>STUDIO</p><h1>Inbox</h1><p className="admin-lede">Every submission is saved before its email notification is attempted, so nothing is lost when mail fails.</p></div>
+    <PageHeader title={<>Inbox</>} eyebrow={<>STUDIO</>} description={<>Review enquiries and follow up with clients.</>}/>
     {query.saved && <p className="success-note">Enquiry updated.</p>}
     {query.notification === "sent" && <p className="success-note">Email notification sent.</p>}
     {query.error && <p className="form-error">{query.error}</p>}
@@ -69,12 +71,12 @@ export default async function Enquiries({ searchParams }) {
           <p className="fm-inbox-message">{open.message}</p>
           <div className="fm-inbox-actions">
             <a className="button" href={"mailto:" + open.email}>Reply</a>
-            {open.notification_status === "failed" && <form action={retryEnquiryNotification}><input type="hidden" name="id" value={open.id} /><SubmitButton className="button button-secondary" pendingLabel="Retrying...">Retry email</SubmitButton></form>}
+            {open.notification_status === "failed" && <form action={retryEnquiryNotification}><Input type="hidden" name="id" value={open.id} /><SubmitButton className="button button-secondary" pendingLabel="Retrying...">Retry email</SubmitButton></form>}
           </div>
           <form className="admin-form fm-inbox-form" action={updateEnquiry}>
-            <input type="hidden" name="id" value={open.id} />
-            <label>Status<select name="status" defaultValue={open.status}><option value="new">new</option><option value="read">read</option><option value="replied">replied</option><option value="archived">archived</option><option value="spam">spam</option></select></label>
-            <label>Internal notes<textarea name="notes" defaultValue={open.internal_notes || ""} placeholder="What happened next?" /></label>
+            <Input type="hidden" name="id" value={open.id} />
+            <label>Status<Select name="status" defaultValue={open.status}><option value="new">new</option><option value="read">read</option><option value="replied">replied</option><option value="archived">archived</option><option value="spam">spam</option></Select></label>
+            <label>Internal notes<Textarea name="notes" defaultValue={open.internal_notes || ""} placeholder="What happened next?" /></label>
             <div className="fm-inbox-form-actions"><SubmitButton className="button" pendingLabel="Saving...">Save</SubmitButton><span className="fm-inbox-hint">Marking replied or archived here does not email the client.</span></div>
           </form>
         </article> : null}

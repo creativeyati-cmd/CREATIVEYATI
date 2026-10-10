@@ -46,7 +46,7 @@ export default function HeroPreviewPage() {
       <p className="lh-badge">Films, ads and product stories</p>
       <h1 className="lh-headline">
         We make commercials<br />
-        people actually <span className="lh-strike">watch</span>
+        people actually watch
       </h1>
       <p className="lh-lede">
         A small studio for brands that want work people finish. Concept, direction and edit handled end to end, from the first brief to the final cut.

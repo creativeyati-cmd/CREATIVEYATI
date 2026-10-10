@@ -1,4 +1,5 @@
 "use client";
+import { Input } from "@/Components/FormControls";
 
 import { useRef } from "react";
 import SubmitButton from "@/Components/SubmitButton";
@@ -25,13 +26,13 @@ export default function RevokeCertificateDialog({ id, serial }) {
       onClick={(event) => { if (event.target === dialog.current) close(); }}
     >
       <form className="admin-form" action={revokeCertificate}>
-        <input type="hidden" name="id" value={id} />
+        <Input type="hidden" name="id" value={id} />
         <h2 id={`revoke-title-${id}`}>Revoke {serial}?</h2>
         <p>The public verification page will report this certificate as revoked, with the reason below recorded. Anyone who checks the serial will see it.</p>
-        <label>Reason<input name="reason" placeholder="Issued in error, chargeback, misconduct…" required /></label>
+        <label>Reason<Input name="reason" placeholder="Issued in error, chargeback, misconduct…" required /></label>
         <div className="admin-dialog-actions">
           <button className="button button-secondary" type="button" onClick={close}>Cancel</button>
-          <SubmitButton className="button" pendingLabel="Revoking…">Revoke certificate</SubmitButton>
+          <SubmitButton className="button button-danger" pendingLabel="Revoking…">Revoke certificate</SubmitButton>
         </div>
       </form>
     </dialog>

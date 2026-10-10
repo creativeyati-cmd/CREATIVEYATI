@@ -1,7 +1,10 @@
 "use client";
+import DashboardPageShell from "./DashboardPageShell";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import useDashboardShell from "@/Components/useDashboardShell";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import AdminNavigation from "@/Components/AdminNavigation";
 import { AdminIcon } from "@/Components/Icons";
 
@@ -18,57 +21,12 @@ const STORAGE_KEY = "cy-admin-sidebar";
 // the sidebar collapses, so there is no state to hold.
 export default function AdminShell({ logout, children }) {
   const shell = useRef(null);
-
-  useEffect(() => {
-    try {
-      if (window.localStorage.getItem(STORAGE_KEY) === "collapsed") shell.current?.classList.add("is-collapsed");
-    } catch {
-      // storage can be unavailable; an expanded sidebar is a fine default
-    }
-    // the overlay sheet has to be dismissible from the keyboard too, not only by
-    // tapping the scrim. body scroll is locked in CSS with :has()
-    const onKey = (event) => {
-      if (event.key !== "Escape") return;
-      const element = shell.current;
-      if (element?.classList.contains("is-nav-open")) {
-        element.classList.remove("is-nav-open");
-        element.querySelector(".admin-nav-trigger")?.setAttribute("aria-expanded", "false");
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  function toggle() {
-    const element = shell.current;
-    if (!element) return;
-    const collapsed = element.classList.toggle("is-collapsed");
-    try {
-      window.localStorage.setItem(STORAGE_KEY, collapsed ? "collapsed" : "expanded");
-    } catch {
-      // preference simply will not persist
-    }
-    const button = element.querySelector(".admin-shell-toggle");
-    if (button) {
-      button.setAttribute("aria-expanded", String(!collapsed));
-      button.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
-      button.setAttribute("title", collapsed ? "Expand sidebar" : "Collapse sidebar");
-    }
-  }
-
-  // below 900px the sidebar becomes an overlay sheet rather than a column, so
-  // opening it is a different action from collapsing it and gets its own class
-  function toggleNav() {
-    const element = shell.current;
-    if (!element) return;
-    const open = element.classList.toggle("is-nav-open");
-    element.querySelector(".admin-nav-trigger")?.setAttribute("aria-expanded", String(open));
-  }
-
+  const pathname = usePathname();
+  const { toggle, toggleNav } = useDashboardShell(shell, STORAGE_KEY, pathname);
   return <div className="admin-shell" ref={shell}>
     <aside>
       <div className="admin-shell-head">
-        <Link className="wordmark" href="/admin">FRAME / MOTION</Link>
+        <Link className="wordmark" href="/admin">AI VIDEO CREATOR</Link>
         <button
           className="admin-shell-toggle"
           type="button"
@@ -87,6 +45,6 @@ export default function AdminShell({ logout, children }) {
     {/* a real element, so tapping the scrim actually closes the sheet */}
     <button className="admin-nav-scrim" type="button" onClick={toggleNav} aria-label="Close navigation" tabIndex={-1} />
     <button className="admin-nav-trigger" type="button" onClick={toggleNav} aria-expanded="false" aria-label="Open navigation">☰</button>
-    <section className="admin-main">{children}</section>
+    <main className="admin-main"><DashboardPageShell>{children}</DashboardPageShell></main>
   </div>;
 }

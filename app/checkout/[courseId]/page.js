@@ -1,10 +1,24 @@
 import { notFound, redirect } from "next/navigation";
-import Image from "next/image";
 import PublicHeader from "@/Components/PublicHeader";
-import PaymentButton from "@/Components/PaymentButton";
+import CheckoutForm from "@/Components/CheckoutForm";
 import { getSiteContent } from "@/lib/data/site";
-import { getPublicCourseById, coursePrice, formatMoney } from "@/lib/data/courses";
-import { getStudentUser } from "@/lib/supabase/server";
+import { getPublicCourseById, coursePrice } from "@/lib/data/courses";
+import { getStudentUser, createSupabaseServiceClient } from "@/lib/supabase/server";
+export const metadata={title:"Complete your enrolment"};
 
-export const metadata = { title: "Secure checkout" };
-export default async function CheckoutPage({ params }) { const { courseId } = await params; const user = await getStudentUser(); if (!user) redirect(`/login?next=${encodeURIComponent(`/checkout/${courseId}`)}`); const [course, site] = await Promise.all([getPublicCourseById(courseId), getSiteContent()]); if (!course) notFound(); const finalPrice = coursePrice(course); const discount = Math.max(0, course.priceMinor - finalPrice); return <main className="public-page"><PublicHeader site={site} /><section className="checkout-page public-note"><p className="eyebrow">SECURE CHECKOUT</p><div className="checkout-summary"><Image src={course.coverImageUrl} alt={`${course.title} cover`} width={640} height={360} sizes="(max-width: 620px) 90vw, 220px" unoptimized /><div><h1>{course.title}</h1><p>{course.instructor || site.creatorName}</p><dl className="checkout-pricing"><div><dt>Original price</dt><dd>{course.isFree ? "Free" : formatMoney(course.priceMinor, course.currency)}</dd></div><div><dt>Discount</dt><dd>{discount ? `−${formatMoney(discount, course.currency)}` : "—"}</dd></div><div><dt>Final amount</dt><dd><strong>{finalPrice === 0 ? "Free" : formatMoney(finalPrice, course.currency)}</strong></dd></div><div><dt>Currency</dt><dd>{course.currency}</dd></div></dl></div></div><form className="checkout-form"><label>Email<input value={user.email || ""} readOnly /></label><label>Coupon code<input name="couponCode" autoComplete="off" /></label><label className="consent"><input type="checkbox" required />I agree to the course terms and refund policy.</label><PaymentButton courseId={course.id} /></form><p className="secure-note">Payment is completed on Bachs’ secure hosted checkout. Card details are never collected by this website.</p></section></main>; }
+export default async function CheckoutPage({params}) {
+ const {courseId}=await params,user=await getStudentUser();
+ if(!user)redirect("/login?next="+encodeURIComponent("/checkout/"+courseId));
+ const [course,site]=await Promise.all([getPublicCourseById(courseId),getSiteContent()]);
+ if(!course)notFound();
+ const service=createSupabaseServiceClient();
+ const {data:enrolment}=service?await service.from("enrolments").select("id").eq("student_id",user.id).eq("course_id",course.id).eq("active",true).maybeSingle():{data:null};
+ if(enrolment)redirect("/learn/"+course.slug);
+ const price=coursePrice(course);
+ const modules=course.sections||[],lessons=modules.flatMap(module=>module.lessons||[]);
+ return <main className="public-page reference-checkout"><PublicHeader site={site}/>
+  <CheckoutForm courseId={course.id} email={user.email||""} verified={Boolean(user.email_confirmed_at)}
+    currency={course.currency} amountMinor={price} isFree={price===0}
+    course={{title:course.title,slug:course.slug,coverImageUrl:course.coverImageUrl,coverFocalX:course.coverFocalX,coverFocalY:course.coverFocalY,priceMinor:course.priceMinor,moduleCount:modules.length,lessonCount:lessons.length}}/>
+ </main>;
+}

@@ -1,3 +1,9 @@
+import { EmptyState } from "@/Components/Feedback";
+import SettingsNavigation from "@/Components/SettingsNavigation";
+import Badge, { toneForStatus } from "@/Components/Badge";
+import { Input, Button } from "@/Components/FormControls";
+import DataTable from "@/Components/DataTable";
+import { PageHeader } from "@/Components/DashboardPageShell";
 import { saveBachsSettings, testBachsSettings } from "@/app/admin/actions";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/data/courses";
@@ -13,11 +19,7 @@ export default async function PaymentsPage({ searchParams }) {
   const encryptionReady = canEncryptSecrets();
 
   return <>
-    <div className="admin-title">
-      <p>COMMERCE</p>
-      <h1>Bachs payments</h1>
-      <p className="admin-lede">Configure hosted checkout and signed webhook fulfillment, then review the collections matched to portfolio orders.</p>
-    </div>
+    <PageHeader title={<>Bachs payments</>} eyebrow={<>COMMERCE</>} description={<>Configure checkout and review verified collections.</>}/><SettingsNavigation/>
     {query.saved && <p className="success-note">Bachs payment settings updated securely.</p>}
     {query.tested === "connected" && <p className="success-note">Bachs API connection verified.</p>}
     {query.tested === "limited" && <p className="success-note">Bachs authenticated the key. The key does not include balance-reading permission, but checkout access can still be used.</p>}
@@ -30,22 +32,22 @@ export default async function PaymentsPage({ searchParams }) {
       {!configuration.ready && <p>Paid checkout is not fully active. Complete and enable the secure configuration below; free-course enrolment remains available.</p>}
     </section>
     <form className="admin-form integration-form" action={saveBachsSettings}>
-      <label className="check-label form-wide"><input name="enabled" type="checkbox" defaultChecked={configuration.enabled} /> Enable Bachs paid checkout</label>
-      <label className="form-wide">Bachs API key<input name="apiKey" type="password" autoComplete="new-password" placeholder={configuration.apiKeySource !== "missing" ? `Saved in ${configuration.apiKeySource} — leave blank to keep` : "sk_sandbox_… or sk_live_…"} disabled={!encryptionReady} /><small>Stored encrypted when entered here. Sandbox and live keys automatically use their matching API host.</small></label>
-      <label className="form-wide">Webhook signing secret<input name="webhookSecret" type="password" autoComplete="new-password" placeholder={configuration.webhookSecretSource !== "missing" ? `Saved in ${configuration.webhookSecretSource} — leave blank to keep` : "Paste the signing secret from Bachs"} disabled={!encryptionReady} /></label>
-      <label className="check-label"><input name="clearApiKey" type="checkbox" /> Remove dashboard API key</label>
-      <label className="check-label"><input name="clearWebhookSecret" type="checkbox" /> Remove dashboard webhook secret</label>
-      <label className="form-wide">Webhook endpoint<input value={WEBHOOK_URL} readOnly /><small>Add this endpoint in Bachs for collection, checkout-expired, and refund events.</small></label>
-      <button className="button" type="submit" disabled={!encryptionReady}>Save payment settings</button>
+      <label className="check-label form-wide"><Input name="enabled" type="checkbox" defaultChecked={configuration.enabled} /> Enable Bachs paid checkout</label>
+      <label className="form-wide">Bachs API key<Input name="apiKey" type="password" autoComplete="new-password" placeholder={configuration.apiKeySource !== "missing" ? `Saved in ${configuration.apiKeySource} — leave blank to keep` : "sk_sandbox_… or sk_live_…"} disabled={!encryptionReady} /><small>Stored encrypted when entered here. Sandbox and live keys automatically use their matching API host.</small></label>
+      <label className="form-wide">Webhook signing secret<Input name="webhookSecret" type="password" autoComplete="new-password" placeholder={configuration.webhookSecretSource !== "missing" ? `Saved in ${configuration.webhookSecretSource} — leave blank to keep` : "Paste the signing secret from Bachs"} disabled={!encryptionReady} /></label>
+      <label className="check-label"><Input name="clearApiKey" type="checkbox" /> Remove dashboard API key</label>
+      <label className="check-label"><Input name="clearWebhookSecret" type="checkbox" /> Remove dashboard webhook secret</label>
+      <label className="form-wide">Webhook endpoint<Input value={WEBHOOK_URL} readOnly /><small>Add this endpoint in Bachs for collection, checkout-expired, and refund events.</small></label>
+      <Button className="button" type="submit" disabled={!encryptionReady}>Save payment settings</Button>
     </form>
     <form className="admin-test-form" action={testBachsSettings}>
-      <button className="button button-secondary" type="submit" disabled={!configuration.checkoutReady}>Test Bachs connection</button>
+      <Button className="button button-secondary" type="submit" disabled={!configuration.checkoutReady}>Test Bachs connection</Button>
       <small>Save first. The test authenticates against Bachs without creating a charge.</small>
     </form>
     <section className="admin-section-heading"><p>TRANSACTIONS</p><h2>Verified collections</h2></section>
-    {error ? <p className="form-error">Payments could not be loaded. Check the database connection and commerce migration.</p> : payments.length ? <div className="admin-table">
+    {error ? <p className="form-error">Payments could not be loaded. Check the database connection and commerce migration.</p> : payments.length ? <DataTable label="Payments">
       <div><b>Order</b><b>Gateway reference</b><b>Amount</b><b>Channel</b><b>Status</b></div>
-      {payments.map((payment) => <div key={payment.id}><span>{payment.orders?.reference || "—"}</span><span>{payment.gateway_reference}</span><span>{formatMoney(payment.amount_minor, payment.currency)}</span><span>{payment.channel || "—"}</span><span>{payment.status}</span></div>)}
-    </div> : <p className="empty-state admin-empty-state">No verified payments yet. Completed checkouts will appear here after the signed Bachs webhook is received.</p>}
+      {payments.map((payment) => <div key={payment.id}><span>{payment.orders?.reference || "—"}</span><span>{payment.gateway_reference}</span><span>{formatMoney(payment.amount_minor, payment.currency)}</span><span>{payment.channel || "—"}</span><span><Badge tone={toneForStatus(payment.status)}>{payment.status}</Badge></span></div>)}
+    </DataTable> : <EmptyState title="Nothing here yet">No verified payments yet. Completed checkouts will appear here after the signed Bachs webhook is received.</EmptyState>}
   </>;
 }

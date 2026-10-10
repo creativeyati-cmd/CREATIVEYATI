@@ -1,48 +1,18 @@
 "use client";
-
-import Link from "next/link";
+import SidebarItem from "./SidebarItem";
 import { usePathname } from "next/navigation";
-import { AdminIcon } from "@/Components/Icons";
-
-const links = [
-  { href: "/admin", label: "Overview", icon: "home" },
-  { href: "/admin/activity", label: "Activity", icon: "folder" },
-  { href: "/admin/videos", label: "Videos", icon: "video" },
-  { href: "/admin/categories", label: "Categories", icon: "folder" },
-  { href: "/admin/content", label: "Website content", icon: "folder" },
-  { href: "/admin/enquiries", label: "Enquiries", icon: "mail" },
-  { href: "/admin/courses", label: "Courses", icon: "video" },
-  { href: "/admin/certificates", label: "Certificates", icon: "award" },
-  { href: "/admin/orders", label: "Orders", icon: "folder" },
-  { href: "/admin/invoices", label: "Quotations & invoices", icon: "book" },
-  { href: "/admin/payments", label: "Bachs payments", icon: "folder" },
-  { href: "/admin/coupons", label: "Coupons", icon: "folder" },
-  { href: "/admin/settings/social", label: "Social profiles", icon: "user" },
-  { href: "/admin/settings/email", label: "SMTP email", icon: "mail" },
-  { href: "/admin/course-settings", label: "Course settings", icon: "settings" },
-  { href: "/admin/settings", label: "Settings", icon: "settings" },
+const groups=[
+ ["Workspace",[["/admin","Overview","home"],["/admin/activity","Activity log","folder"]]],
+ ["Studio",[["/admin/videos","Projects","video"],["/admin/categories","Categories","folder"],["/admin/enquiries","Enquiries","mail"]]],
+ ["Academy",[["/admin/courses","Courses","book"],["/admin/students","Students","user"],["/admin/certificates","Certificates","award"],["/admin/course-settings","Academy settings","settings"]]],
+ ["Communications",[["/admin/communications/messages","Messages","mail"],["/admin/communications/newsletters","Newsletters","mail"],["/admin/communications/templates","Templates","doc"],["/admin/communications/history","History","folder"]]],
+ ["Commerce",[["/admin/orders","Course orders","folder"],["/admin/invoices","Client invoices & receipts","book"],["/admin/payments","Payments","folder"],["/admin/coupons","Coupons","folder"]]],
+ ["Website",[["/admin/content","Website content","folder"],["/admin/content/services","Services media","video"],["/admin/settings/social","Social profiles","user"]]],
+ ["Settings",[["/admin/settings/documents","Receipts & certificates","award"],["/admin/security","Account security","user"],["/admin/settings/email","Email delivery","mail"],["/admin/settings","General settings","settings"]]],
 ];
-
-function isCurrentPage(pathname, href) {
-  if (href === "/admin") return pathname === href;
-  if (["/admin/settings/social", "/admin/settings/email"].includes(href)) return pathname === href;
-  if (href === "/admin/settings") {
-    return pathname === href || (pathname.startsWith(`${href}/`) && !["/admin/settings/social", "/admin/settings/email"].includes(pathname));
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
 export default function AdminNavigation() {
-  const pathname = usePathname();
-
-  return <nav aria-label="Dashboard">
-    {links.map((item) => {
-      const active = isCurrentPage(pathname, item.href);
-      return <Link className={active ? "is-active" : undefined} href={item.href} key={item.href} aria-current={active ? "page" : undefined}>
-        <AdminIcon name={item.icon} />
-        {item.label}
-      </Link>;
-    })}
-    <Link href="/" target="_blank" rel="noreferrer"><AdminIcon name="home" />View website</Link>
-  </nav>;
+ const pathname=usePathname();
+ const paths=groups.flatMap(([,links])=>links.map(([href])=>href));
+ const current=paths.filter(href=>pathname===href||(href!=="/admin"&&pathname.startsWith(href+"/"))).sort((a,b)=>b.length-a.length)[0];
+ return <nav aria-label="Administration">{groups.map(([title,links])=><div className="admin-nav-group" key={title}><p className="admin-nav-label">{title}</p>{links.map(([href,label,icon])=><SidebarItem key={href} href={href} label={label} icon={icon} active={current===href}/>)}</div>)}<SidebarItem href="/" target="_blank" rel="noreferrer" label="View website" icon="home"/></nav>;
 }

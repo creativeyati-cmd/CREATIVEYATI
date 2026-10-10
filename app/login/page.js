@@ -1,45 +1,19 @@
+import ToastFeedback from "@/Components/AdminToast";
 import Link from "next/link";
-import { getSiteContent } from "@/lib/data/site";
-import { studentSignIn } from "@/app/student-actions";
+import { cookies } from "next/headers";
+import AuthLayout from "@/Components/AuthLayout";
 import SubmitButton from "@/Components/SubmitButton";
-
-export const metadata = { title: "Student sign in" };
-export const dynamic = "force-dynamic";
-
-// Two panels on desktop: the dark brand side, and the form. Below 900px the dark
-// panel is hidden and the form stands alone under a small wordmark, because on a
-// phone the form is the whole job.
-export default async function LoginPage({ searchParams }) {
-  const [site, query] = await Promise.all([getSiteContent(), searchParams]);
-  const next = query.next || "/learn";
-  const brand = site.creatorName || "FRAME / MOTION";
-
-  return <div className="fm-auth">
-    <aside className="fm-auth-aside">
-      <span className="fm-auth-brand">{brand}</span>
-      <div>
-        <h2>Learn by making films.</h2>
-        <p>Every course walks you from a brief to a finished cut, and the certificate at the end is yours to keep.</p>
-      </div>
-      <span className="fm-auth-frame" aria-hidden="true" />
-    </aside>
-    <main className="fm-auth-main">
-      <div className="fm-auth-card">
-        <span className="fm-auth-logo">{brand}</span>
-        <p className="fm-auth-label">STUDENT ACCESS</p>
-        <h1>Sign in</h1>
-        <p className="fm-auth-lede">Pick up where you left off.</p>
-        {query.message && <p className="success-note">{query.message}</p>}
-        {query.error && <p className="form-error">{query.error}</p>}
-        <form className="admin-form fm-auth-form" action={studentSignIn}>
-          <input type="hidden" name="next" value={next} />
-          <label>Email<input type="email" name="email" autoComplete="email" placeholder="you@example.com" required /></label>
-          <label>Password<input type="password" name="password" autoComplete="current-password" required /></label>
-          <p className="fm-auth-forgot"><Link className="inline-link" href="/reset-password">Forgot password?</Link></p>
-          <SubmitButton className="button fm-auth-submit" pendingLabel="Signing in...">Sign in</SubmitButton>
-        </form>
-        <p className="fm-auth-alt">New here? <Link className="inline-link" href={"/register?next=" + encodeURIComponent(next)}>Create an account</Link></p>
-      </div>
-    </main>
-  </div>;
+import { studentSignIn } from "@/app/student-actions";
+import { safeNext, CHECKOUT_COOKIE, checkoutIntentPath } from "@/lib/auth/redirect";
+export const metadata={title:"Sign in"};
+export default async function LoginPage({searchParams}) {
+ const query=await searchParams;
+ // a visitor bounced here from checkout carries no ?next=, so fall back to the
+ // course they had open instead of dropping them on the dashboard
+ const intent=checkoutIntentPath((await cookies()).get(CHECKOUT_COOKIE)?.value);
+ const next=safeNext(query.next, intent||"/learn");
+ return <AuthLayout title="Welcome back." description={next.startsWith("/checkout/")?"Sign in to continue your course purchase.":"Pick up where you left off."}>
+ {query.message&&<p role="status" className="success-note">{query.message}</p>}{query.error&&<ToastFeedback kind="error" message={query.error}/>}
+ <form className="admin-form fm-auth-form" action={studentSignIn}><input type="hidden" name="next" value={next}/><label>Email<input name="email" type="email" autoComplete="email" required/></label><label>Password<input name="password" type="password" autoComplete="current-password" required/></label><Link className="inline-link" href={"/reset-password?next="+encodeURIComponent(next)}>Forgot password?</Link><SubmitButton pendingLabel="Signing in...">Sign in</SubmitButton></form>
+ <p className="fm-auth-alt">New here? <Link href={"/register?next="+encodeURIComponent(next)}>Create an account</Link></p><p className="fm-auth-alt"><Link href="/courses">Explore courses</Link></p></AuthLayout>;
 }

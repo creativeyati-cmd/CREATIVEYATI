@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import { storageUploadError } from "../lib/storage-upload-error.js";
+assert.match(storageUploadError(400, JSON.stringify({message:"The object exceeded the maximum allowed size"})), /Global file size/);
+assert.match(storageUploadError(413, "<html>error</html>"), /storage limit/);
+assert.match(storageUploadError(400, JSON.stringify({code:"InvalidMimeType"})), /file type/);
+assert.match(storageUploadError(400, JSON.stringify({message:"jwt expired"})), /fresh link/);
+assert.match(storageUploadError(403, "{}"), /denied access/);
+assert.match(storageUploadError(503, "{}"), /temporarily/);
+assert.equal(storageUploadError(400, JSON.stringify({error:"https://secret.test/?token=secret",message:"secret"})), "Supabase rejected the upload (HTTP 400). Check the Storage logs for this request, then retry.");
+console.log("PASS: size/type/auth/expiry/service errors and no credential echo");

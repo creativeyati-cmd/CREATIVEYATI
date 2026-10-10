@@ -1,214 +1,41 @@
 "use client";
-
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { AdminIcon, SocialIcon } from "./Icons";
-import ProfileAvatar from "./ProfileAvatar";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
+import "./public-header.css";
 
-// Two businesses on one brand: the studio sells the work, the academy sells the
-// course. Each context gets its own link set and calls to action rather than one
-// compromised menu. The desktop bar reads these; the mobile sheet flattens them.
-const studioLinks = [
-  { href: "/work", label: "Work", icon: "video" },
-  { href: "/services", label: "Services", icon: "settings" },
-  {
-    href: "/academy",
-    label: "Academy",
-    icon: "award",
-    children: [
-      { href: "/academy", label: "Course overview", description: "What you learn and who it is for" },
-      { href: "/academy#curriculum", label: "Curriculum", description: "Modules, lessons and free previews" },
-      { href: "/academy#pricing", label: "Pricing", description: "One payment, lifetime access" },
-      { href: "/verify", label: "Verify a certificate", description: "Check a serial from any certificate" },
-    ],
-  },
-  { href: "/about", label: "About", icon: "user" },
-  { href: "/contact", label: "Contact", icon: "mail" },
-];
+const links = [["/", "Home"], ["/work", "Portfolio"], ["/services", "Services"], ["/academy", "Academy"], ["/courses", "Courses"], ["/about", "About"], ["/contact", "Contact"]];
 
-const academyLinks = [
-  { href: "/academy", label: "Course", icon: "book" },
-  { href: "/academy#curriculum", label: "Curriculum", icon: "folder" },
-  { href: "/academy#pricing", label: "Pricing", icon: "folder" },
-  { href: "/work", label: "See the work", icon: "video" },
-  { href: "/verify", label: "Verify a certificate", icon: "award" },
-  { href: "/about", label: "About", icon: "user" },
-];
-
-// the academy context covers the course pages and everything behind the door
-function isAcademyPath(path) {
-  return path === "/academy" || String(path).startsWith("/academy") || String(path).startsWith("/learn") || String(path).startsWith("/dashboard");
-}
-
-export default function PublicHeader({ site, current = "/" }) {
-  const [open, setOpen] = useState(false);
-  const [closing, setClosing] = useState(false);
-  const root = useRef(null);
-  const timer = useRef(null);
-  const initials = String(site.creatorName || "Portfolio")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-  const profilePosition = `${Number(site.profileFocalX) || 50}% ${Number(site.profileFocalY) || 50}%`;
-
-  const academy = isAcademyPath(current);
-  const links = academy ? academyLinks : studioLinks;
-  const primaryCta = academy
-    ? { href: "/contact?intent=academy", label: "Enrol now" }
-    : { href: "/contact", label: site.ctaLabel || "Start a project" };
-  const secondaryCta = academy
-    ? { href: "/work", label: "See the work" }
-    : { href: "/academy", label: "Browse courses" };
-
-  const isActive = (href) => current === href || (href !== "/" && !href.includes("#") && String(current).startsWith(`${href}/`));
-
-  function close() {
-    if (!open) return;
-    setOpen(false);
-    setClosing(true);
-    clearTimeout(timer.current);
-    const closeMs = parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue("--dropdown-close-dur"),
-    ) || 150;
-    timer.current = setTimeout(() => setClosing(false), closeMs);
-  }
-
-  function toggle() {
-    if (open) {
-      close();
-      return;
-    }
-    clearTimeout(timer.current);
-    setClosing(false);
-    setOpen(true);
-  }
-
-  useEffect(() => {
-    const outside = (event) => {
-      if (!root.current?.contains(event.target)) close();
-    };
-    const key = (event) => {
-      if (event.key === "Escape") close();
-    };
-    document.addEventListener("pointerdown", outside);
-    document.addEventListener("keydown", key);
-    return () => {
-      document.removeEventListener("pointerdown", outside);
-      document.removeEventListener("keydown", key);
-      clearTimeout(timer.current);
-    };
-  });
-
-  useEffect(() => {
-    if (!open || window.innerWidth >= 768) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [open]);
-
-  useEffect(() => {
+export default function PublicHeader({ signedIn = false }) {
+  const pathname = usePathname();
+  const menu = useRef(null);
+  const trigger = useRef(null);
+  const active = href => pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+  function notify(open) {
+    trigger.current?.setAttribute("aria-expanded", String(open));
     window.dispatchEvent(new CustomEvent("portfolio-menu-change", { detail: { open } }));
-    return () => window.dispatchEvent(new CustomEvent("portfolio-menu-change", { detail: { open: false } }));
-  }, [open]);
-
-  return (
-    <header className="site-header" ref={root}>
-      <div className="identity-wrap">
-        <Link href="/" className="identity">
-          <ProfileAvatar className="profile-image" src={site.profileImage} width={40} height={40} sizes="(max-width: 767px) 32px, 40px" style={{ objectPosition: profilePosition }} alt={`${site.creatorName} profile`} initials={initials} priority />
-          <span>{site.creatorName}</span>
-          <span className="identity-badge">{academy ? "Academy" : "Studio"}</span>
-        </Link>
-        {/* mobile: a hamburger, not a dropdown chevron. it opens a full sheet
-            rather than a panel hanging off the identity. */}
-        <button
-          className={`menu-trigger ${open ? "is-open" : ""}`}
-          type="button"
-          onClick={toggle}
-          aria-controls="mobile-navigation"
-          aria-expanded={open}
-          aria-label={open ? "Close menu" : "Open menu"}
-        >
-          <span className="menu-bars" aria-hidden="true"><span /><span /><span /></span>
-        </button>
+  }
+  function close() { menu.current?.close(); }
+  useEffect(() => {
+    const dialog = menu.current;
+    const resize = () => { if (window.innerWidth >= 1180) dialog?.close(); };
+    window.addEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+      window.dispatchEvent(new CustomEvent("portfolio-menu-change", { detail: { open: false } }));
+    };
+  }, []);
+  return <header className="universal-header">
+    <Link href="/" className="universal-brand" aria-label="AI Video Creator home"><span className="universal-brand-mark" aria-hidden="true">AI</span><span>AI VIDEO CREATOR<small>Create. Learn. Tell your story.</small></span></Link>
+    <nav className="universal-desktop" aria-label="Primary">{links.map(([href,label]) => <Link href={href} key={href} aria-current={active(href) ? "page" : undefined}>{label}</Link>)}</nav>
+    <Link className="universal-account" href={signedIn ? "/learn" : "/login"}>{signedIn ? "My learning" : "Sign in"}<span aria-hidden="true"> ↗</span></Link>
+    <button className="universal-menu-trigger" ref={trigger} type="button" aria-label="Open menu" aria-controls="universal-menu" aria-expanded="false" onClick={() => { menu.current.showModal(); notify(true); }}>☰</button>
+    <dialog id="universal-menu" className="universal-menu" ref={menu} onClose={() => notify(false)} onClick={event => { if (event.target === event.currentTarget) close(); }}>
+      <div className="universal-menu-inner"><div className="universal-menu-heading"><strong>Explore AI VIDEO CREATOR</strong><button type="button" aria-label="Close menu" onClick={close} autoFocus>✕</button></div>
+        <nav aria-label="Mobile navigation">{links.map(([href,label]) => <Link href={href} key={href} onClick={close} aria-current={active(href) ? "page" : undefined}>{label}<span aria-hidden="true">↗</span></Link>)}</nav>
+        <Link className="universal-mobile-account" href={signedIn ? "/learn" : "/login"} onClick={close}>{signedIn ? "My learning" : "Sign in to your account"}</Link>
+        <Link href="/verify" onClick={close}>Verify a certificate</Link>
       </div>
-
-      <div
-        id="mobile-navigation"
-        className={`mobile-menu ${open ? "is-open" : ""} ${closing ? "is-closing" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Site navigation"
-        aria-hidden={!open}
-      >
-        <nav className="mobile-menu-links">
-          {links.map((link) => (
-            <div key={link.href}>
-              <Link
-                href={link.href}
-                className={`mobile-menu-link ${isActive(link.href) ? "is-active" : ""}`}
-                aria-current={isActive(link.href) ? "page" : undefined}
-                tabIndex={open ? 0 : -1}
-                onClick={close}
-              >
-                <AdminIcon name={link.icon} />
-                <span>{link.label}</span>
-              </Link>
-              {link.children ? (
-                <div className="mobile-menu-sub">
-                  {link.children.map((child) => (
-                    <Link key={`${child.href}-${child.label}`} href={child.href} tabIndex={open ? 0 : -1} onClick={close}>{child.label}</Link>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </nav>
-        {(site.instagramUrl || site.youtubeUrl) ? (
-          <div className="mobile-menu-social">
-            {site.instagramUrl ? <a href={site.instagramUrl} target="_blank" rel="noreferrer" aria-label="Instagram" tabIndex={open ? 0 : -1} onClick={close}><SocialIcon name="instagram" /><span>Instagram</span></a> : null}
-            {site.youtubeUrl ? <a href={site.youtubeUrl} target="_blank" rel="noreferrer" aria-label="YouTube" tabIndex={open ? 0 : -1} onClick={close}><SocialIcon name="youtube" /><span>YouTube</span></a> : null}
-          </div>
-        ) : null}
-        <div className="mobile-menu-foot">
-          <Link className="button" href={primaryCta.href} tabIndex={open ? 0 : -1} onClick={close}>{primaryCta.label}</Link>
-          <Link className="button button-secondary" href={secondaryCta.href} tabIndex={open ? 0 : -1} onClick={close}>{secondaryCta.label}</Link>
-        </div>
-      </div>
-
-      {/* desktop: a plain list of links, with the academy panel as a hover and
-          focus disclosure. no custom arrow-key handling, so Tab just works. */}
-      <nav className="header-actions" aria-label="Primary">
-        <div className="header-links">
-          {links.map((link) =>
-            link.children ? (
-              <div className="header-dropdown" key={link.href}>
-                <span className="header-dropdown-trigger">
-                  <Link href={link.href} className={isActive(link.href) ? "is-active" : ""} aria-current={isActive(link.href) ? "page" : undefined}>{link.label}</Link>
-                  <span className="header-dropdown-caret" aria-hidden="true">▼</span>
-                </span>
-                <div className="header-dropdown-panel">
-                  {link.children.map((child) => (
-                    <Link className="header-dropdown-item" href={child.href} key={`${child.href}-${child.label}`}>
-                      <span>{child.label}</span>
-                      {child.description ? <small>{child.description}</small> : null}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <Link key={link.href} href={link.href} className={isActive(link.href) ? "is-active" : ""} aria-current={isActive(link.href) ? "page" : undefined}>{link.label}</Link>
-            ),
-          )}
-        </div>
-        <Link className="header-secondary" href={secondaryCta.href}>{secondaryCta.label}</Link>
-        <Link className="header-cta" href={primaryCta.href}>{primaryCta.label}<AdminIcon name="arrow" /></Link>
-      </nav>
-    </header>
-  );
+    </dialog>
+  </header>;
 }

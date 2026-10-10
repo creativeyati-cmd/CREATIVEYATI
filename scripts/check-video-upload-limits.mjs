@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import {registerHooks} from 'node:module';
+import {pathToFileURL} from 'node:url';import path from 'node:path';
+registerHooks({resolve(s,c,next){
+ if(s==='server-only')return {url:'data:text/javascript,export{}',shortCircuit:true};
+ if(s==='./r2')return {url:'data:text/javascript,'+encodeURIComponent('export const r2Upload=async()=>"https://r2.test/upload";export const r2Head=async()=>globalThis.object;export const r2VerifyMp4=async()=>{if(globalThis.badMp4)throw new Error("Invalid video");};'),shortCircuit:true};
+ if(s==='@/lib/supabase/server')return {url:'data:text/javascript,'+encodeURIComponent('export const getAdminUser=async()=>globalThis.actor;export const createSupabaseServiceClient=()=>globalThis.db;'),shortCircuit:true};
+ if(s.startsWith('@/'))return next(pathToFileURL(path.resolve(s.slice(2)+'.js')).href,c);
+ if(s.startsWith('.')&&!path.extname(s))return next(s+'.js',c);return next(s,c);
+}});
+const {POST}=await import('../app/api/admin/course-video/route.js');
+const courseId='11111111-1111-4111-8111-111111111111',lessonId='22222222-2222-4222-8222-222222222222';
+let asset,updates=0;
+globalThis.actor={id:'admin'};globalThis.object={ContentLength:1024,ContentType:'video/mp4'};
+globalThis.db={from(table){const q={select(){return q},eq(){return q},is(){return q},async maybeSingle(){return {data:table==='courses'?{id:courseId}:asset}},async insert(data){asset={...data,id:'asset'};return {}},update(){updates++;return q},then(resolve){resolve({})}};return q}};
+const send=(body)=>POST(new Request('https://site.test/api/admin/course-video',{method:'POST',body:JSON.stringify({courseId,lessonId,fileSize:1024,fileName:'test.mp4',mimeType:'video/mp4',...body})}));
+let response=await send({action:'sign'});assert.equal(response.status,200);const signed=await response.json();assert.equal(signed.provider,'r2');assert.equal(asset.uploaded_by,'admin');
+const final={action:'finalize',storageKey:signed.storageKey,width:640,height:360,durationSeconds:2};
+assert.equal((await send(final)).status,200);assert.equal((await send(final)).status,200);
+assert.equal((await send({...final,lessonId:courseId})).status,400);
+globalThis.actor={id:'other'};assert.equal((await send(final)).status,400);globalThis.actor={id:'admin'};
+globalThis.object.ContentLength=99;assert.equal((await send(final)).status,400);globalThis.object.ContentLength=1024;
+globalThis.badMp4=true;assert.equal((await send(final)).status,400);
+assert.equal((await send({action:'sign',fileName:'test.mov',mimeType:'video/quicktime'})).status,400);
+assert.equal((await send({action:'sign',fileSize:3*1024**3})).status,400);
+globalThis.actor=null;assert.equal((await send({action:'sign'})).status,401);
+assert.equal(updates,2);console.log('PASS: R2 signing/finalize retries, uploader/course ownership, actual size, MP4 validation, MOV/oversize rejection, admin access');

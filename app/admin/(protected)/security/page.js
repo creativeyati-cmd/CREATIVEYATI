@@ -1,0 +1,5 @@
+import { PageHeader, Card } from "@/Components/DashboardPageShell";
+import Link from "next/link";
+import { signOutAllAdminSessions } from "@/app/admin/mfa/actions";
+import SubmitButton from "@/Components/SubmitButton";
+export default function SecurityPage() {return <section><PageHeader title={<>Account security</>} eyebrow={<>SETTINGS</>} description={<>Your workspace requires a signed-in administrator account.</>}/><div className="security-grid"><Card as="article"><h2>Administrator access</h2><p>Sign in with your email and password. Administrator membership is checked on the server.</p></Card><Card as="article"><h2>Password</h2><p>Use a password reset email to choose a new password.</p><Link className="inline-link" href="/reset-password?next=/admin">Reset password</Link></Card><Card as="article"><h2>Sessions</h2><p>Sign out all sessions, including this one. Existing access tokens may remain valid until their expiry.</p><form action={signOutAllAdminSessions}><SubmitButton pendingLabel="Signing out...">Sign out all sessions</SubmitButton></form></Card></div></section>;}

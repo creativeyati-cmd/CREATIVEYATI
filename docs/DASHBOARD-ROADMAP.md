@@ -1,5 +1,9 @@
 # Dashboard and platform roadmap
 
+Current status: see [Production TODO](PRODUCTION-TODO.md), reviewed 2026-10-04.
+The phase definitions below remain the plan; historical status statements below
+are superseded by that review where they differ from the current source.
+
 Phases for closing the gap between this app and the attached KORO reference
 (`_reference-design/play around/dist/settings-dashboard`). Evidence for the
 comparison is in `docs/DASHBOARD-DESIGN.md` and the keyword inventory below:

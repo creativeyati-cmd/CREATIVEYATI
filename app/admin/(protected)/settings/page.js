@@ -1,8 +1,10 @@
+import SettingsNavigation from "@/Components/SettingsNavigation";
+import { PageHeader } from "@/Components/DashboardPageShell";
 import Link from "next/link";
 
 export default function Settings() {
   return <>
-    <div className="admin-title"><p>SETTINGS</p><h1>Site configuration</h1><p className="admin-lede">Manage public contact details, social profiles, email and payment APIs, search metadata and course presentation.</p></div>
+    <PageHeader title={<>Site configuration</>} eyebrow={<>SETTINGS</>} description={<>Manage your website, integrations and academy settings.</>}/><SettingsNavigation/>
     <div className="admin-list settings-list">
       <Link href="/admin/settings/carousel"><span>Carousel motion<small>Continuous direction, speed, interaction recovery and reduced-motion behaviour</small></span><b>Open</b></Link>
       <Link href="/admin/settings/contact"><span>Contact details<small>Public email, phone, WhatsApp, location and booking availability</small></span><b>Open</b></Link>

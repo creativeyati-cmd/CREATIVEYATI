@@ -1,71 +1,13 @@
-// Offline course delivery, Tier 2: casual sharing is blocked, extraction from
-// browser storage is accepted. Media is cached same-origin only — an embedded
-// YouTube or Vimeo lesson lives on someone else's server and cannot be cached,
-// so those lessons simply keep requiring a connection.
-
-const VERSION = "v2";
-const SHELL = `cy-shell-${VERSION}`;
-const MEDIA = `cy-media-${VERSION}`;
-const MEDIA_PREFIX = "/api/learn/media/";
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(SHELL).then(() => self.skipWaiting()));
+const CACHE="avc-public-shell-v1";
+const PUBLIC=["/offline.html","/pwa/icon-192.png","/pwa/icon-512.png","/pwa/maskable-512.png"];
+self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(PUBLIC)).then(()=>self.skipWaiting())));
+async function purge(){for(const key of await caches.keys())if(key!==CACHE&&(key.startsWith("avc-public-shell-")||key.startsWith("cy-shell-")||key.startsWith("cy-media-")))await caches.delete(key);}
+self.addEventListener("activate",event=>event.waitUntil(purge().then(()=>self.clients.claim())));
+self.addEventListener("message",event=>{if(event.data==="purge-cache")event.waitUntil(purge());});
+self.addEventListener("fetch",event=>{
+ const req=event.request;const url=new URL(req.url);
+ if(req.method!=="GET"||url.origin!==self.location.origin)return;
+ // Never cache authenticated HTML, APIs, payment pages, signed media, or RSC responses.
+ if(req.mode==="navigate")event.respondWith(fetch(req).catch(async()=>await caches.match("/offline.html")||Response.error()));
+ else if(PUBLIC.includes(url.pathname)&&!url.search)event.respondWith(caches.match(req).then(hit=>hit||fetch(req)));
 });
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.filter((key) => key !== SHELL && key !== MEDIA).map((key) => caches.delete(key)));
-    await self.clients.claim();
-  })());
-});
-
-// the page asks for this on sign-out, so a shared device keeps nothing
-self.addEventListener("message", (event) => {
-  if (event.data === "purge-cache") event.waitUntil(purge());
-});
-
-async function purge() {
-  const keys = await caches.keys();
-  await Promise.all(keys.map((key) => caches.delete(key)));
-}
-
-self.addEventListener("fetch", (event) => {
-  const request = event.request;
-  if (request.method !== "GET") return;
-  const url = new URL(request.url);
-  // never intercept third-party media: embeds cannot be played offline at all
-  if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith(MEDIA_PREFIX)) { event.respondWith(mediaFirst(request)); return; }
-  // Only the student area is cached. The admin dashboard must never be served
-  // from a stale cache, so its navigations are left completely alone: a cached
-  // dashboard shell after a deploy is worse than no offline support at all.
-  if (request.mode === "navigate" && url.pathname.startsWith("/learn")) event.respondWith(shellFirst(request));
-});
-
-// uploaded lesson media is immutable, so a cache hit is served without hitting
-// the network. the route redirects to a short-lived signed url; fetch follows
-// it, so the bytes are stored under the stable route url instead of the
-// expiring one, which is what makes offline playback work at all.
-async function mediaFirst(request) {
-  const cache = await caches.open(MEDIA);
-  const hit = await cache.match(request, { ignoreVary: true });
-  if (hit) return hit;
-  const response = await fetch(request);
-  if (response.ok && response.status === 200) cache.put(request, response.clone());
-  return response;
-}
-
-async function shellFirst(request) {
-  const cache = await caches.open(SHELL);
-  try {
-    const response = await fetch(request);
-    if (response.ok) cache.put(request, response.clone());
-    return response;
-  } catch {
-    const hit = await cache.match(request);
-    if (hit) return hit;
-    throw new Error("offline");
-  }
-}
-

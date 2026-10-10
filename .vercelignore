@@ -1,0 +1,16 @@
+# Local environment files. Vercel injects these as environment variables at
+# build time; the files themselves must never leave this machine.
+.env
+.env.local
+.env.*.local
+
+# Vercel supplies these during the build.
+.git
+.next
+node_modules
+
+# Local review artefacts: screenshots, QA scripts and sample documents.
+.review
+**/__pycache__
+**/*.pyc
+.vscode

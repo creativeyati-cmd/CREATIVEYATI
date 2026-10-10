@@ -1,4 +1,5 @@
 "use client";
+import { Input, Select, Textarea } from "@/Components/FormControls";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -128,7 +129,7 @@ function CoverUpload({ label, kind, cover, setCover, orientation, uploadId, sche
 
   return <section className="cover-uploader" aria-busy={busy}>
     <div className="cover-uploader-heading"><div><strong>{label}</strong><small>JPG, PNG, WebP or AVIF · maximum 8MB</small></div><div className="cover-uploader-actions"><button type="button" onClick={() => inputRef.current?.click()} disabled={busy}>{cover.url ? "Replace" : "Choose image"}</button>{cover.url && <button type="button" onClick={removeCover} disabled={busy}>Remove</button>}</div></div>
-    <input ref={inputRef} className="cover-file-input" type="file" accept=".jpg,.jpeg,.png,.webp,.avif,image/jpeg,image/png,image/webp,image/avif" onChange={(event) => selectFile(event.target.files?.[0])} />
+    <Input ref={inputRef} className="cover-file-input" type="file" accept=".jpg,.jpeg,.png,.webp,.avif,image/jpeg,image/png,image/webp,image/avif" onChange={(event) => selectFile(event.target.files?.[0])} />
     {(preview || cover.url) && <NextImage className="cover-upload-preview" src={preview || cover.url} width={960} height={540} sizes="(max-width: 780px) 90vw, 780px" unoptimized={Boolean(preview)} alt="Selected cover preview" />}
     {status && <div className="upload-status"><span>{status}</span>{["Uploading", "Processing"].includes(status) && <progress max="100" value={progress}>{progress}%</progress>}</div>}
     {warning && <p className="form-warning">{warning}</p>}
@@ -192,42 +193,42 @@ export default function VideoForm({ video, categories, action }) {
   }
 
   return <form className="admin-form video-admin-form" action={action}>
-    <input type="hidden" name="id" value={video?.id || ""} />
-    <input type="hidden" name="aspectRatio" value={orientation === "portrait" ? 9 / 16 : 16 / 9} />
-    <input type="hidden" name="coverAspectRatio" value={16 / 9} />
-    <input type="hidden" name="coverImageUrl" value={mainCover.url} />
-    <input type="hidden" name="coverImageStorageKey" value={mainCover.key} />
-    <input type="hidden" name="mobileCoverImageUrl" value={mobileCover.url} />
-    <input type="hidden" name="mobileCoverStorageKey" value={mobileCover.key} />
-    <input type="hidden" name="coverVariants" value={JSON.stringify(mainCover.variants)} />
-    <input type="hidden" name="mobileCoverVariants" value={JSON.stringify(mobileCover.variants)} />
-    <input type="hidden" name="cleanupStorageKeys" value={JSON.stringify(cleanupKeys)} />
-    <label>Title<input required name="title" defaultValue={video?.title} /></label>
-    <label>Slug<input required name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" defaultValue={video?.slug} /></label>
-    <label className="form-wide">Video URL<input required name="videoUrl" type="url" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="YouTube or public Google Drive link" />{videoUrl && <small className={videoSource ? "field-success" : "form-error"}>{videoSource ? `${videoSource.provider === "youtube" ? "YouTube" : "Google Drive"} video detected.` : "Enter a supported YouTube or Google Drive video link."}</small>}{videoSource?.provider === "youtube" && <span className="youtube-thumbnail-preview"><span>Generated YouTube thumbnail</span><NextImage src={videoSource.thumbnailUrl} width={480} height={270} sizes="320px" alt="Generated YouTube project thumbnail" /></span>}{videoSource?.provider === "google_drive" && <small>Set the Drive file access to “Anyone with the link” so visitors can play it.</small>}</label>
-    <label>Orientation<select name="orientation" value={orientation} onChange={(event) => setOrientation(event.target.value)}><option value="landscape">Landscape — 16:9</option><option value="portrait">Portrait — 9:16</option></select></label>
-    <label>Status<select name="status" value={status} onChange={(event) => setStatus(event.target.value)}><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></label>
-    <label>Category<select name="categoryId" defaultValue={video?.category_id || ""}><option value="">Uncategorised</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
-    <label>Year<input name="year" type="number" min="1900" max="2100" defaultValue={video?.year} /></label>
-    <label className="form-wide">Short description<textarea name="shortDescription" defaultValue={video?.short_description} rows="2" /></label>
-    <label className="form-wide">Project description<textarea name="description" defaultValue={video?.description} rows="6" /></label>
-    <label>Client name<input name="clientName" defaultValue={video?.client_name} /></label>
-    <label>Creative role<input name="creativeRole" defaultValue={video?.creative_role} /></label>
-    <label>Director<input name="director" defaultValue={video?.director} /></label>
-    <label>Production company<input name="productionCompany" defaultValue={video?.production_company} /></label>
-    <label>Location<input name="location" defaultValue={video?.location} /></label>
-    <label>External project URL<input name="externalProjectUrl" type="url" defaultValue={video?.external_project_url} /></label>
-    <label className="form-wide">Tags · comma separated<input name="tags" defaultValue={Array.isArray(video?.tags) ? video.tags.join(", ") : ""} /></label>
-    <label className="form-wide">Credits · one per line, Role: Name<textarea name="credits" rows="5" defaultValue={Array.isArray(video?.credits) ? video.credits.map((credit) => typeof credit === "string" ? credit : `${credit.role || credit.title || "Credit"}: ${credit.name || credit.value || ""}`).join("\n") : ""} /></label>
+    <Input type="hidden" name="id" value={video?.id || ""} />
+    <Input type="hidden" name="aspectRatio" value={orientation === "portrait" ? 9 / 16 : 16 / 9} />
+    <Input type="hidden" name="coverAspectRatio" value={16 / 9} />
+    <Input type="hidden" name="coverImageUrl" value={mainCover.url} />
+    <Input type="hidden" name="coverImageStorageKey" value={mainCover.key} />
+    <Input type="hidden" name="mobileCoverImageUrl" value={mobileCover.url} />
+    <Input type="hidden" name="mobileCoverStorageKey" value={mobileCover.key} />
+    <Input type="hidden" name="coverVariants" value={JSON.stringify(mainCover.variants)} />
+    <Input type="hidden" name="mobileCoverVariants" value={JSON.stringify(mobileCover.variants)} />
+    <Input type="hidden" name="cleanupStorageKeys" value={JSON.stringify(cleanupKeys)} />
+    <label>Title<Input required name="title" defaultValue={video?.title} /></label>
+    <label>Slug<Input required name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" defaultValue={video?.slug} /></label>
+    <label className="form-wide">Video URL<Input required name="videoUrl" type="url" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="YouTube or public Google Drive link" />{videoUrl && <small className={videoSource ? "field-success" : "form-error"}>{videoSource ? `${videoSource.provider === "youtube" ? "YouTube" : "Google Drive"} video detected.` : "Enter a supported YouTube or Google Drive video link."}</small>}{videoSource?.provider === "youtube" && <span className="youtube-thumbnail-preview"><span>Generated YouTube thumbnail</span><NextImage src={videoSource.thumbnailUrl} width={480} height={270} sizes="320px" alt="Generated YouTube project thumbnail" /></span>}{videoSource?.provider === "google_drive" && <small>Set the Drive file access to “Anyone with the link” so visitors can play it.</small>}</label>
+    <label>Orientation<Select name="orientation" value={orientation} onChange={(event) => setOrientation(event.target.value)}><option value="landscape">Landscape — 16:9</option><option value="portrait">Portrait — 9:16</option></Select></label>
+    <label>Status<Select name="status" value={status} onChange={(event) => setStatus(event.target.value)}><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></Select></label>
+    <label>Category<Select name="categoryId" defaultValue={video?.category_id || ""}><option value="">Uncategorised</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</Select></label>
+    <label>Year<Input name="year" type="number" min="1900" max="2100" defaultValue={video?.year} /></label>
+    <label className="form-wide">Short description<Textarea name="shortDescription" defaultValue={video?.short_description} rows="2" /></label>
+    <label className="form-wide">Project description<Textarea name="description" defaultValue={video?.description} rows="6" /></label>
+    <label>Client name<Input name="clientName" defaultValue={video?.client_name} /></label>
+    <label>Creative role<Input name="creativeRole" defaultValue={video?.creative_role} /></label>
+    <label>Director<Input name="director" defaultValue={video?.director} /></label>
+    <label>Production company<Input name="productionCompany" defaultValue={video?.production_company} /></label>
+    <label>Location<Input name="location" defaultValue={video?.location} /></label>
+    <label>External project URL<Input name="externalProjectUrl" type="url" defaultValue={video?.external_project_url} /></label>
+    <label className="form-wide">Tags · comma separated<Input name="tags" defaultValue={Array.isArray(video?.tags) ? video.tags.join(", ") : ""} /></label>
+    <label className="form-wide">Credits · one per line, Role: Name<Textarea name="credits" rows="5" defaultValue={Array.isArray(video?.credits) ? video.credits.map((credit) => typeof credit === "string" ? credit : `${credit.role || credit.title || "Credit"}: ${credit.name || credit.value || ""}`).join("\n") : ""} /></label>
 
     <div className="form-wide cover-upload-grid">
       <CoverUpload label="Required 16:9 project cover" kind="main" cover={mainCover} setCover={setMainCover} orientation="landscape" uploadId={uploadId} scheduleCleanup={scheduleCleanup} onBusyChange={setMainUploadBusy} />
     </div>
 
-    <input type="hidden" name="coverFit" value="cover" />
-    <label>Alternative text<input name="coverAlt" value={coverAlt} onChange={(event) => setCoverAlt(event.target.value)} placeholder="Describe the project cover" /></label>
-    <label>Focal X<input name="coverFocalX" type="range" min="0" max="100" value={focalX} onChange={(event) => setFocalX(Number(event.target.value))} /><small>{focalX}%</small></label>
-    <label>Focal Y<input name="coverFocalY" type="range" min="0" max="100" value={focalY} onChange={(event) => setFocalY(Number(event.target.value))} /><small>{focalY}%</small></label>
+    <Input type="hidden" name="coverFit" value="cover" />
+    <label>Alternative text<Input name="coverAlt" value={coverAlt} onChange={(event) => setCoverAlt(event.target.value)} placeholder="Describe the project cover" /></label>
+    <label>Focal X<Input name="coverFocalX" type="range" min="0" max="100" value={focalX} onChange={(event) => setFocalX(Number(event.target.value))} /><small>{focalX}%</small></label>
+    <label>Focal Y<Input name="coverFocalY" type="range" min="0" max="100" value={focalY} onChange={(event) => setFocalY(Number(event.target.value))} /><small>{focalY}%</small></label>
 
     <section className="form-wide admin-media-previews">
       <div className="admin-preview-heading"><div><strong>Responsive 16:9 cover previews</strong><small>The same crop and focal point are used from desktop to mobile. Video orientation applies only after playback starts.</small></div></div>

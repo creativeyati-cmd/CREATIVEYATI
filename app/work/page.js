@@ -6,7 +6,7 @@ import { getSiteContent } from "@/lib/data/site";
 import { getPublicPortfolio } from "@/lib/data/public";
 import { getPublicSocialLinks } from "@/lib/data/social";
 
-export const metadata = { title: "Work" };
+export const metadata = { title: { absolute: "AI Video Portfolio & Commercial Work | Idayat Ibrahim" }, description: "Explore visual storytelling, product videos, AI commercials and branded content by Idayat Ibrahim.", alternates: { canonical: "https://aivideocreator.cv/work" } };
 
 export default async function WorkPage() {
   const [{ videos, error }, site, socialLinks] = await Promise.all([getPublicPortfolio(), getSiteContent(), getPublicSocialLinks()]);

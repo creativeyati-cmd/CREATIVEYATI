@@ -1,0 +1,39 @@
+.live-workspace{overflow-wrap:anywhere}
+.live-workspace :is(.aw-metric,.sw-stat){display:block;text-decoration:none;min-width:0}
+.live-workspace .aw-metric>strong{display:block;margin:18px 0 12px;font-size:clamp(24px,2.2vw,34px);line-height:1.2}
+.live-workspace .aw-metric-caption{display:block}
+.live-workspace .sw-stat-bottom>strong{font-size:clamp(26px,2.6vw,40px)}
+.live-workspace :is(.aw-action-grid a,.aw-create,.aw-attention-list>a,.sw-upcoming>a){display:flex;align-items:center;gap:12px;border:1px solid #e2e8da;border-radius:12px;padding:14px;min-height:48px;text-decoration:none;background:#fff}
+.admin-workspace.live-workspace .aw-create{margin:20px 0;background:#2c543c;color:#fff;justify-content:space-between}
+.live-workspace .aw-action-grid a{justify-content:space-between;font-size:13px}
+.live-workspace .aw-attention-list>a{margin-top:12px;align-items:flex-start}
+.live-workspace .aw-attention-list strong,.live-workspace .aw-attention-list small{display:block}
+.live-workspace .aw-attention-list small{margin-top:6px;line-height:1.5}
+.live-workspace .sw-upcoming>a{margin-top:12px;padding:12px 0;border:0;border-bottom:1px solid #e2e8da;border-radius:0;background:transparent}
+.live-workspace .sw-upcoming>a>span:nth-child(2){flex:1;min-width:0}
+.live-workspace .sw-upcoming strong,.live-workspace .sw-upcoming small{display:block}
+.live-workspace .sw-upcoming strong{font-size:14px;font-weight:500}
+.live-workspace .sw-upcoming small{font-size:12px;margin-top:5px;color:#65705f}
+.live-workspace :is(.aw-card,.sw-card)>p{font-size:14px;line-height:1.6;color:#65705f}
+.live-workspace :is(.aw-metric-caption,.sw-stat-caption){font-size:12px;line-height:1.5}
+.live-workspace .sw-quick>div>a{font-size:13px;min-height:46px;white-space:normal}
+.live-workspace .workspace-goal{display:grid;gap:12px;margin-top:16px;font-size:14px}
+.live-workspace select{background:#fff;color:#273a2e;border:1px solid #cdd7c8;border-radius:8px;padding:9px;min-height:44px;max-width:100%}
+.live-workspace .workspace-chart{padding:25px;min-width:0}
+.live-workspace .workspace-chart h2{font-size:18px;margin:0;font-weight:500}
+.live-workspace .workspace-chart .aw-section-heading p{font-size:12px;color:#65705f}
+.live-workspace .aw-chart-legend{font-size:12px;flex-wrap:wrap;gap:10px}
+.live-workspace .aw-segmented button{min-height:40px;font-size:12px}
+.live-workspace .aw-bell,.live-workspace .sw-bell{display:grid;place-items:center;min-width:44px;min-height:44px}
+.live-workspace .workspace-currency{display:flex;align-items:center;gap:12px;margin-top:12px;font-size:13px}
+.live-workspace :is(.aw-health-row,.aw-health-intro,.aw-insight){font-size:13px}
+.live-workspace .aw-health-row{gap:12px}
+.live-workspace .sw-ring{width:64px;height:64px}
+.live-workspace .sw-stat:hover,.live-workspace .aw-metric:hover{border-color:#a2b895}
+.live-workspace .aw-point{min-width:24px;min-height:24px}
+.live-workspace .aw-chart{margin-top:24px}
+.live-workspace .aw-section-heading{flex-wrap:wrap}
+.live-workspace .sw-continue-copy{width:72%}
+.live-workspace .sw-activity li{flex-wrap:wrap}
+.live-workspace .sw-activity li>div{min-width:0;flex:1}
+@media(max-width:650px){.live-workspace .sw-continue-copy{width:100%}.live-workspace .aw-metric>strong{font-size:27px}.live-workspace .aw-metric-caption,.live-workspace .sw-stat-caption{font-size:11px}.live-workspace .workspace-chart{padding:20px}.live-workspace .aw-action-grid{grid-template-columns:1fr}.live-workspace .aw-health-row{flex-wrap:wrap}.live-workspace .sw-stat-bottom>strong{font-size:30px}}

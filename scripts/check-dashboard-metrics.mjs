@@ -1,0 +1,16 @@
+﻿import assert from 'node:assert/strict';
+import { dayKey, dailySeries, learningStreak, platformProgress } from '../lib/dashboard-metrics.js';
+const now=new Date('2026-10-07T12:00:00Z');
+assert.equal(dayKey('2026-10-06T23:30:00Z'),'2026-10-07');
+assert.equal(dayKey(null),'');
+const series=dailySeries([{at:'2026-10-06T23:30:00Z',amount:12500},{at:'2026-10-07T10:00:00Z',amount:500},{at:'2026-09-01T12:00:00Z',amount:999999}], 'at',14,now,row=>row.amount/100);
+assert.equal(series.length,14);assert.equal(series.at(-1).value,130);assert.equal(series.reduce((s,x)=>s+x.value,0),130);
+assert.equal(learningStreak([],now),0);
+assert.equal(learningStreak([{completed:true,completed_at:'2026-10-06T12:00:00Z'},{completed:true,completed_at:'2026-10-05T12:00:00Z'}],now),2);
+assert.equal(learningStreak([{completed:true,completed_at:'2026-10-05T12:00:00Z'}],now),0);
+const lessons=[{id:'l1',course_id:'c'},{id:'l2',course_id:'c'}];
+const enrolments=[{student_id:'a',course_id:'c'},{student_id:'b',course_id:'c'}];
+const progress=[{student_id:'a',course_id:'c',lesson_id:'l1',completed:true},{student_id:'a',course_id:'c',lesson_id:'l2',completed:true},{student_id:'a',course_id:'c',lesson_id:'l2',completed:true},{student_id:'b',course_id:'c',lesson_id:'draft',completed:true}];
+assert.deepEqual(platformProgress(enrolments,lessons,progress),{average:50,completion:50,count:2});
+assert.deepEqual(platformProgress([],lessons,progress),{average:0,completion:0,count:0});
+console.log('Dashboard calendar, revenue units, streak, duplicate, draft lesson and empty-state checks passed.');

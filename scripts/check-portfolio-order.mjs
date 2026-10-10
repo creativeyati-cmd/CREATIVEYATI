@@ -1,0 +1,31 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { PGlite } from "@electric-sql/pglite";
+const db = new PGlite();
+await db.exec(`create role anon; create role authenticated; create role service_role;
+create schema auth;
+create function auth.role() returns text language sql as $$ select 'authenticated'::text $$;
+create function public.is_admin() returns boolean language sql as $$ select coalesce(current_setting('test.admin',true),'false') = 'true' $$;
+create table public.videos(id uuid primary key, display_order integer not null, updated_at timestamptz default now());
+insert into public.videos(id,display_order) values ('00000000-0000-0000-0000-000000000001',0),('00000000-0000-0000-0000-000000000002',1);
+set test.admin = 'true';`);
+const migration = readFileSync('supabase/migrations/202610070001_portfolio_order_repair.sql','utf8');
+assert.equal(migration, readFileSync('supabase/production-portfolio-order-repair.sql','utf8'));
+await db.exec(migration);
+await db.exec(migration);
+const ids=['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002'];
+const order = async () => (await db.query('select id from videos order by display_order')).rows.map(row=>row.id);
+const reorder = values => db.query('select public.reorder_videos($1::uuid[])',[values]);
+await reorder([...ids].reverse()); assert.deepEqual(await order(), [...ids].reverse());
+for (const bad of [[ids[0]], [ids[0],ids[0]], [ids[0],'00000000-0000-0000-0000-000000000003'],[ids[0],null]]) {
+ await assert.rejects(()=>reorder(bad),error=>error.code==='22023');
+ assert.deepEqual(await order(),[...ids].reverse());
+}
+await db.exec('alter table videos add constraint videos_display_order_unique unique(display_order) deferrable initially deferred');
+await reorder(ids); assert.deepEqual(await order(),ids);
+await db.exec("set test.admin = 'false'");
+await assert.rejects(()=>reorder([...ids].reverse()),error=>error.code==='42501');
+assert.deepEqual(await order(),ids);
+assert.equal((await db.query("select has_function_privilege('anon','public.reorder_videos(uuid[])','EXECUTE') as allowed")).rows[0].allowed,false);
+await db.close();
+console.log('PASS repeatable migration, bootstrap/constraint layouts, complete reorder, invalid/stale input rollback, admin and anon access');
